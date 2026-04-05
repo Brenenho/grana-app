@@ -10,7 +10,7 @@ import { Modal } from "@/components/ui/Modal";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { FormErrorAlert } from "@/components/ui/FormErrorAlert";
 import { Bucket, BUCKET_CONFIG } from "@/types";
-import { Plus, Trash2, Edit2, Pencil, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, Edit2, Pencil, AlertCircle, CheckCircle2, ArrowRightLeft } from "lucide-react";
 
 const CAT_ICONS = ["🏠","💡","💧","📱","📺","🛒","🚗","🚌","💊","🏋️","📚","🎓","🎮","🍔","☕","✈️","👕","💈","🐾","💰","🔧","💻","🎵","🎬","🏦","📦","🌐","💅","🧹","🧾"];
 const CAT_COLORS = ["#3b82f6","#22c55e","#a78bfa","#f97316","#eab308","#06b6d4","#ec4899","#14b8a6","#f43f5e","#84cc16","#8b5cf6","#fb923c"];
@@ -31,9 +31,55 @@ const INIT_CAT = {
 };
 
 export default function Budget() {
-  const { profile, transactions, goals, categories, addCategory, updateCategory, deleteCategory, updateProfile } = useAppStore();
+  const { profile, transactions, goals, categories, addCategory, updateCategory, deleteCategory, updateProfile, addTransaction } = useAppStore();
   const salary = profile?.salary ?? 0;
   const buckets = useMemo(() => calcBuckets(salary, transactions, categories), [salary, transactions, categories]);
+
+  // Transfer modal
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferFrom, setTransferFrom] = useState<Bucket>("fixo");
+  const [transferTo, setTransferTo] = useState<Bucket>("livre");
+  const [transferAmount, setTransferAmount] = useState("");
+  const [transferLoading, setTransferLoading] = useState(false);
+  const [transferError, setTransferError] = useState("");
+
+  async function handleTransfer() {
+    const val = parseFloat(transferAmount);
+    if (isNaN(val) || val <= 0) { setTransferError("Informe um valor válido."); return; }
+    if (transferFrom === transferTo) { setTransferError("Origem e destino devem ser baldes diferentes."); return; }
+    const fromBucket = buckets.find(b => b.bucket === transferFrom);
+    if (fromBucket && val > fromBucket.remaining) {
+      setTransferError(`Saldo insuficiente — o balde ${BUCKET_LABELS[transferFrom]} tem apenas ${formatBRL(fromBucket.remaining)} disponível.`);
+      return;
+    }
+    setTransferLoading(true);
+    setTransferError("");
+    try {
+      const supabase = createClient();
+      const { data: { user }, error: authErr } = await supabase.auth.getUser();
+      if (authErr || !user) { setTransferError("Sessão expirada."); return; }
+      const today = new Date().toISOString().slice(0, 10);
+      const [{ data: outTx, error: outErr }, { data: inTx, error: inErr }] = await Promise.all([
+        supabase.from("transactions").insert({
+          user_id: user.id, description: `Transferência → ${BUCKET_LABELS[transferTo]}`,
+          amount: -Math.abs(val), category: "Transferência", bucket: transferFrom, type: "despesa", date: today,
+        }).select().single(),
+        supabase.from("transactions").insert({
+          user_id: user.id, description: `Transferência ← ${BUCKET_LABELS[transferFrom]}`,
+          amount: Math.abs(val), category: "Transferência", bucket: transferTo, type: "receita", date: today,
+        }).select().single(),
+      ]);
+      if (outErr || inErr) { setTransferError(`Erro: ${(outErr ?? inErr)!.message}`); return; }
+      if (outTx) addTransaction(outTx);
+      if (inTx) addTransaction(inTx);
+      setTransferOpen(false);
+      setTransferAmount("");
+    } catch (err: unknown) {
+      setTransferError(`Erro inesperado: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setTransferLoading(false);
+    }
+  }
 
   // Salary modal
   const [salaryOpen, setSalaryOpen] = useState(false);
@@ -255,9 +301,14 @@ export default function Budget() {
             Distribua o salário antes de gastar, categoria a categoria
           </p>
         </div>
-        <Button onClick={openSalaryModal}>
-          <Pencil size={13} strokeWidth={2} /> Editar salário
-        </Button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Button onClick={() => { setTransferOpen(true); setTransferAmount(""); setTransferError(""); }}>
+            <ArrowRightLeft size={13} strokeWidth={2} /> Transferir sobra
+          </Button>
+          <Button onClick={openSalaryModal}>
+            <Pencil size={13} strokeWidth={2} /> Editar salário
+          </Button>
+        </div>
       </div>
 
       {/* Summary row */}
@@ -730,6 +781,50 @@ export default function Budget() {
             {catLoading ? "Salvando..." : catModal === "add" ? "Criar categoria" : "Salvar alterações"}
           </Button>
           <Button onClick={() => setCatModal(null)}>Cancelar</Button>
+        </div>
+      </Modal>
+
+      {/* Transfer modal */}
+      <Modal open={transferOpen} onClose={() => setTransferOpen(false)} title="Transferir sobra entre baldes">
+        <div style={{ marginBottom: 12, fontSize: 12, color: "var(--text3)" }}>
+          Move o saldo não utilizado de um balde para outro.
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 10, alignItems: "end", marginBottom: 16 }}>
+          <div>
+            <label>De</label>
+            <select value={transferFrom} onChange={(e) => { setTransferFrom(e.target.value as Bucket); setTransferError(""); }}>
+              {(Object.entries(BUCKET_LABELS) as [Bucket, string][]).map(([v, l]) => {
+                const b = buckets.find(x => x.bucket === v);
+                return <option key={v} value={v}>{l} ({formatBRL(b?.remaining ?? 0)} restante)</option>;
+              })}
+            </select>
+          </div>
+          <div style={{ paddingBottom: 8, color: "var(--text3)", fontSize: 18, textAlign: "center" }}>→</div>
+          <div>
+            <label>Para</label>
+            <select value={transferTo} onChange={(e) => { setTransferTo(e.target.value as Bucket); setTransferError(""); }}>
+              {(Object.entries(BUCKET_LABELS) as [Bucket, string][]).filter(([v]) => v !== transferFrom).map(([v, l]) => (
+                <option key={v} value={v}>{l}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div style={{ marginBottom: 16 }}>
+          <label>Valor a transferir (R$)</label>
+          <input
+            type="number" autoFocus min="0.01" step="0.01"
+            placeholder={`máx. ${formatBRL(buckets.find(b => b.bucket === transferFrom)?.remaining ?? 0)}`}
+            value={transferAmount}
+            onChange={(e) => { setTransferAmount(e.target.value); setTransferError(""); }}
+            onKeyDown={(e) => e.key === "Enter" && handleTransfer()}
+          />
+        </div>
+        <FormErrorAlert message={transferError} />
+        <div style={{ display: "flex", gap: 10 }}>
+          <Button variant="primary" onClick={handleTransfer} disabled={transferLoading} style={{ flex: 1, justifyContent: "center" }}>
+            {transferLoading ? "Transferindo..." : "Confirmar transferência"}
+          </Button>
+          <Button onClick={() => setTransferOpen(false)}>Cancelar</Button>
         </div>
       </Modal>
 

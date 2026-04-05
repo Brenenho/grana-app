@@ -11,6 +11,9 @@ export function calcBuckets(salary: number, txs: Transaction[], categories: Budg
     const committed = categories
       .filter((c) => c.bucket === bucket)
       .reduce((s, c) => s + c.monthly_limit, 0);
+    const txTransferIn = txs
+      .filter((t) => t.bucket === bucket && t.type === "receita" && t.category === "Transferência")
+      .reduce((s, t) => s + Math.abs(t.amount), 0);
     const spent = bucket === "fixo"
       ? Math.max(Math.round(txSpent), committed)
       : Math.round(txSpent);
@@ -20,7 +23,7 @@ export function calcBuckets(salary: number, txs: Transaction[], categories: Budg
       pct: cfg.pct,
       total,
       spent,
-      remaining: Math.max(0, total - spent),
+      remaining: Math.max(0, total + Math.round(txTransferIn) - spent),
       color: cfg.color,
       committed,
     };

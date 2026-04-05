@@ -61,6 +61,24 @@ describe("calcBuckets", () => {
     const totalRemaining = buckets.reduce((s, b) => s + b.remaining, 0);
     expect(totalRemaining).toBe(3000); // 5000 - 2000
   });
+
+  it("transfer: receita with category='Transferência' increases destination remaining", () => {
+    const txs = [
+      makeTx({ amount: -500, bucket: "fixo", type: "despesa", category: "Transferência" }),
+      makeTx({ amount: 500, bucket: "livre", type: "receita", category: "Transferência" }),
+    ];
+    const buckets = calcBuckets(5000, txs, []);
+    const fixo = buckets.find(b => b.bucket === "fixo")!;
+    const livre = buckets.find(b => b.bucket === "livre")!;
+    expect(fixo.remaining).toBe(2000); // 2500 - 500
+    expect(livre.remaining).toBe(1750); // 1250 + 500 (transfer in)
+  });
+
+  it("transfer: non-Transferência receita does NOT affect remaining", () => {
+    const txs = [makeTx({ amount: 500, bucket: "livre", type: "receita", category: "Outros" })];
+    const [livre] = calcBuckets(5000, txs, []).filter(b => b.bucket === "livre");
+    expect(livre.remaining).toBe(1250); // not affected
+  });
 });
 
 describe("bucketUsagePct", () => {
