@@ -304,7 +304,9 @@ export default function Goals() {
                 {(() => {
                   const bucket = GOAL_BUCKET_MAP[g.name];
                   if (!bucket) return null;
-                  const aportes = transactions.filter(t => t.bucket === bucket && t.type === "despesa");
+                  const now = new Date();
+                  const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+                  const aportes = transactions.filter(t => t.bucket === bucket && t.type === "despesa" && t.date.startsWith(ym));
                   return (
                     <div style={{ marginTop: 12, borderTop: "1px solid var(--border)", paddingTop: 10 }}>
                       <div style={{ fontSize: 10, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600, marginBottom: 6 }}>aportes do mês</div>

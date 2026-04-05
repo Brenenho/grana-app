@@ -9,7 +9,7 @@ import { Card, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { FormErrorAlert } from "@/components/ui/FormErrorAlert";
-import { Plus, Star, CheckCircle2, Trash2 } from "lucide-react";
+import { Plus, Star, CheckCircle2, Trash2, Calendar } from "lucide-react";
 
 const ICONS = ["🎧","💻","📱","⌨️","🖥️","📷","🎮","🎸","✈️","👟","👕","📚","🛋️","🚲","⌚","🎁","🛒","💎","🎯","🏠"];
 const FG = { marginBottom: 16 } as const;
@@ -31,6 +31,14 @@ export default function Wishlist() {
   const buckets = useMemo(() => calcBuckets(salary, transactions, categories), [salary, transactions, categories]);
   const livreDisp = buckets.find((b) => b.bucket === "livre")?.remaining ?? 0;
   const reserva = goals.find((g) => g.name === "Reserva de Emergência");
+
+  // Day-of-month context
+  const today = new Date();
+  const dayOfMonth = today.getDate();
+  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const daysRemaining = daysInMonth - dayOfMonth;
+  const monthPct = Math.round((dayOfMonth / daysInMonth) * 100);
+  const dailyBudget = daysRemaining > 0 ? Math.round(livreDisp / daysRemaining) : livreDisp;
 
   async function handleAdd() {
     if (!form.name.trim() || !form.price) {
@@ -111,13 +119,15 @@ export default function Wishlist() {
       />
 
       {/* Status cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 14 }}>
         <Card>
-          <CardTitle>balde livre disponível</CardTitle>
+          <CardTitle>livre disponível</CardTitle>
           <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "var(--font-dm-mono)", color: "var(--orange)" }}>
             {formatBRL(livreDisp)}
           </div>
-          <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 4 }}>para compras sem culpa</div>
+          <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 4 }}>
+            {daysRemaining > 0 ? `~${formatBRL(dailyBudget)}/dia restante` : "último dia do mês"}
+          </div>
         </Card>
         <Card>
           <CardTitle>reserva de emergência</CardTitle>
@@ -136,6 +146,24 @@ export default function Wishlist() {
           </div>
         </Card>
       </div>
+
+      {/* Day-of-month progress */}
+      <Card style={{ marginBottom: 18, padding: "12px 18px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+          <Calendar size={14} style={{ color: "var(--text3)", flexShrink: 0 }} />
+          <span style={{ fontSize: 12, color: "var(--text3)" }}>
+            Dia {dayOfMonth} de {daysInMonth} — {daysRemaining > 0 ? `${daysRemaining} dias restantes no mês` : "último dia do mês"}
+          </span>
+          <span style={{ fontSize: 11, color: "var(--text3)", marginLeft: "auto" }}>{monthPct}% do mês</span>
+        </div>
+        <div style={{ height: 4, background: "var(--border)", borderRadius: 4, overflow: "hidden" }}>
+          <div style={{
+            height: "100%", width: `${monthPct}%`, borderRadius: 4,
+            background: monthPct >= 80 ? "var(--red)" : monthPct >= 50 ? "var(--yellow)" : "var(--green)",
+            transition: "width 0.3s ease",
+          }} />
+        </div>
+      </Card>
 
       {/* Legend */}
       <div style={{ display: "flex", gap: 16, fontSize: 12, color: "var(--text3)", marginBottom: 14, flexWrap: "wrap" }}>
@@ -157,45 +185,73 @@ export default function Wishlist() {
           {active.map((item) => {
             const a = analyzeWish(item.price, livreDisp, reserva?.current_amount ?? 0, reserva?.target_amount ?? 12000, salary);
             const ss = STATUS_STYLES[a.status];
+            const livreAfter = livreDisp - item.price;
+            const dailyAfter = daysRemaining > 0 ? Math.round(livreAfter / daysRemaining) : livreAfter;
+            const canAfford = livreAfter >= 0;
+            const afterColor = !canAfford ? "var(--red)" : dailyAfter < 30 ? "var(--yellow)" : "var(--green)";
+            const afterIcon = !canAfford ? "❌" : dailyAfter < 30 ? "⚠️" : "✅";
             return (
               <div
                 key={item.id}
                 style={{
                   background: "var(--bg2)", border: ss.border, borderRadius: 14,
-                  padding: "16px 20px", display: "flex", alignItems: "center", gap: 16,
-                  transition: "all 0.18s ease",
+                  padding: "16px 20px", transition: "all 0.18s ease",
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.transform = "translateX(2px)")}
                 onMouseLeave={(e) => (e.currentTarget.style.transform = "translateX(0)")}
               >
-                <div style={{
-                  width: 50, height: 50, flexShrink: 0, fontSize: 26,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  background: ss.iconBg, borderRadius: 12,
-                }}>
-                  {item.icon}
-                </div>
-
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>{item.name}</div>
-                  <div style={{ fontSize: 12 }}>
-                    <span style={{ color: ss.textColor, fontWeight: 500 }}>{a.icon} {a.text}</span>
-                    <span style={{ color: "var(--text3)" }}> — {a.sub}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                  <div style={{
+                    width: 50, height: 50, flexShrink: 0, fontSize: 26,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    background: ss.iconBg, borderRadius: 12,
+                  }}>
+                    {item.icon}
                   </div>
-                  {item.notes && <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 3 }}>{item.notes}</div>}
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>{item.name}</div>
+                    <div style={{ fontSize: 12 }}>
+                      <span style={{ color: ss.textColor, fontWeight: 500 }}>{a.icon} {a.text}</span>
+                      <span style={{ color: "var(--text3)" }}> — {a.sub}</span>
+                    </div>
+                    {item.notes && <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 3 }}>{item.notes}</div>}
+                  </div>
+
+                  <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "var(--font-dm-mono)", whiteSpace: "nowrap", flexShrink: 0 }}>
+                    {formatBRL(item.price)}
+                  </div>
+
+                  <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                    <Button size="sm" variant="primary" onClick={() => markBought(item.id)}>
+                      <CheckCircle2 size={13} strokeWidth={2.5} /> Comprei
+                    </Button>
+                    <Button size="sm" variant="danger" onClick={() => handleDelete(item.id)}>
+                      <Trash2 size={12} strokeWidth={2} />
+                    </Button>
+                  </div>
                 </div>
 
-                <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "var(--font-dm-mono)", whiteSpace: "nowrap", flexShrink: 0 }}>
-                  {formatBRL(item.price)}
-                </div>
-
-                <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                  <Button size="sm" variant="primary" onClick={() => markBought(item.id)}>
-                    <CheckCircle2 size={13} strokeWidth={2.5} /> Comprei
-                  </Button>
-                  <Button size="sm" variant="danger" onClick={() => handleDelete(item.id)}>
-                    <Trash2 size={12} strokeWidth={2} />
-                  </Button>
+                {/* Se comprar hoje */}
+                <div style={{
+                  marginTop: 10, padding: "8px 12px", borderRadius: 8,
+                  background: "var(--bg3)", fontSize: 12,
+                  display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap",
+                }}>
+                  <span style={{ color: "var(--text3)" }}>se comprar hoje:</span>
+                  <span style={{ color: afterColor, fontWeight: 600 }}>
+                    {afterIcon} {canAfford ? `sobra ${formatBRL(livreAfter)} no livre` : `faltam ${formatBRL(Math.abs(livreAfter))}`}
+                  </span>
+                  {canAfford && daysRemaining > 0 && (
+                    <span style={{ color: "var(--text3)" }}>
+                      · {formatBRL(dailyAfter)}/dia pelos {daysRemaining} dias restantes
+                    </span>
+                  )}
+                  {!canAfford && (
+                    <span style={{ color: "var(--text3)" }}>
+                      · saldo insuficiente no balde livre
+                    </span>
+                  )}
                 </div>
               </div>
             );

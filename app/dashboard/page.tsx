@@ -73,11 +73,18 @@ export default function Dashboard() {
     return m;
   }, [categories]);
 
-  // Savings trackers for reserva/empreendedor (aportes = despesa, not receita)
+  // Savings trackers for reserva/empreendedor (aportes = despesa, not receita) — current month only
   const savingsThisMonth = useMemo(() => {
+    const now = new Date();
+    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const m: Record<string, number> = {};
     for (const t of transactions) {
-      if (SAVINGS_BUCKETS.has(t.bucket) && t.type === "despesa" && t.category !== "Transferência") {
+      if (
+        SAVINGS_BUCKETS.has(t.bucket) &&
+        t.type === "despesa" &&
+        t.category !== "Transferência" &&
+        t.date.startsWith(ym)
+      ) {
         m[t.bucket] = (m[t.bucket] ?? 0) + Math.abs(t.amount);
       }
     }
