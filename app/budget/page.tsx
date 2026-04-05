@@ -175,12 +175,17 @@ export default function Budget() {
     }
   }
 
-  // Committed = only fixo bucket categories (the only ones where monthly_limit
-  // actually constrains spending — calcBuckets uses committed as min spend only for fixo)
-  const totalCommitted = useMemo(
-    () => categories.filter((c) => c.bucket === "fixo").reduce((s, c) => s + c.monthly_limit, 0),
-    [categories]
-  );
+  // Committed = fixo category limits (auto-deducted monthly) +
+  //             actual transactions in reserva/empreendedor buckets (manual aports)
+  const totalCommitted = useMemo(() => {
+    const fixoCommitted = categories
+      .filter((c) => c.bucket === "fixo")
+      .reduce((s, c) => s + c.monthly_limit, 0);
+    const savingsCommitted = transactions
+      .filter((t) => (t.bucket === "reserva" || t.bucket === "empreendedor") && t.type === "despesa")
+      .reduce((s, t) => s + Math.abs(t.amount), 0);
+    return fixoCommitted + savingsCommitted;
+  }, [categories, transactions]);
 
   // Spending per category from transactions
   const spentByCategory = useMemo(() => {
@@ -261,12 +266,18 @@ export default function Budget() {
           { label: "Salário", value: formatBRL(salary), sub: "base mensal", color: "var(--text)" },
           (() => {
             const fixoCats = catsByBucket.fixo;
-            const fixoBucket = buckets.find(b => b.bucket === "fixo");
-            const pctOfFixo = fixoBucket && fixoBucket.total > 0 ? Math.round((totalCommitted / fixoBucket.total) * 100) : 0;
+            const savingsAported = transactions
+              .filter(t => (t.bucket === "reserva" || t.bucket === "empreendedor") && t.type === "despesa")
+              .reduce((s, t) => s + Math.abs(t.amount), 0);
+            const pctOfSalary = salary > 0 ? Math.round((totalCommitted / salary) * 100) : 0;
+            const parts = [
+              `${fixoCats.length} conta${fixoCats.length === 1 ? "" : "s"} fixa${fixoCats.length === 1 ? "" : "s"}`,
+              ...(savingsAported > 0 ? [`+ ${formatBRL(savingsAported)} em poupança`] : []),
+            ];
             return {
               label: "Comprometido",
               value: formatBRL(totalCommitted),
-              sub: `${fixoCats.length} conta${fixoCats.length === 1 ? "" : "s"} fixas · ${pctOfFixo}% do balde fixo`,
+              sub: `${parts.join(" ")} · ${pctOfSalary}% do salário`,
               color: "var(--blue)" as const,
             };
           })(),
@@ -377,7 +388,7 @@ export default function Budget() {
             ? Math.ceil((goal.target_amount - (goal.current_amount ?? 0)) / goal.monthly_contribution)
             : 0;
           const savedThisMonth = transactions
-            .filter(t => t.bucket === bucketKey && t.type === "receita")
+            .filter(t => t.bucket === bucketKey && t.type === "despesa")
             .reduce((s, t) => s + Math.abs(t.amount), 0);
           const targetMonthly = b.total;
           const savedPct = targetMonthly > 0 ? Math.min(100, Math.round((savedThisMonth / targetMonthly) * 100)) : 0;

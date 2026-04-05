@@ -18,7 +18,7 @@ const FG = { marginBottom: 16 } as const;
 const COLORS = ["#22c55e", "#3b82f6", "#a78bfa", "#f97316", "#eab308", "#06b6d4", "#ec4899"];
 
 export default function Goals() {
-  const { goals, addGoal, deleteGoal, updateGoal } = useAppStore();
+  const { goals, addGoal, deleteGoal, updateGoal, addTransaction } = useAppStore();
   const [open, setOpen] = useState(false);
   const [aportOpen, setAportOpen] = useState<string | null>(null);
   const [aporte, setAporte] = useState("");
@@ -93,6 +93,11 @@ export default function Goals() {
     }
   }
 
+  const GOAL_BUCKET_MAP: Record<string, "reserva" | "empreendedor"> = {
+    "Reserva de Emergência": "reserva",
+    "Caixa Empreendedor": "empreendedor",
+  };
+
   async function handleAporte(goalId: string) {
     const val = parseFloat(aporte);
     if (isNaN(val) || val <= 0) {
@@ -103,6 +108,9 @@ export default function Goals() {
     setAportError("");
     try {
       const supabase = createClient();
+      const { data: { user }, error: authErr } = await supabase.auth.getUser();
+      if (authErr || !user) { setAportError("Sessão expirada."); setLoading(false); return; }
+
       const goal = goals.find((g) => g.id === goalId)!;
       const newAmount = goal.current_amount + val;
       const { error } = await supabase
@@ -115,6 +123,31 @@ export default function Goals() {
         setAportError(`Erro: ${error.message}`);
       } else {
         updateGoal(goalId, { current_amount: newAmount });
+
+        // Se a meta corresponde a um balde (reserva/empreendedor), criar transação
+        const bucket = GOAL_BUCKET_MAP[goal.name];
+        if (bucket) {
+          const today = new Date().toISOString().slice(0, 10);
+          const { data: txData, error: txError } = await supabase
+            .from("transactions")
+            .insert({
+              user_id: user.id,
+              description: `Aporte · ${goal.name}`,
+              amount: val,
+              category: "Poupança",
+              bucket,
+              type: "despesa",
+              date: today,
+            })
+            .select()
+            .single();
+          if (txError) {
+            console.error("[aporte tx]", txError);
+          } else if (txData) {
+            addTransaction(txData);
+          }
+        }
+
         setAportOpen(null);
         setAporte("");
       }
