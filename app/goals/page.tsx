@@ -12,6 +12,7 @@ import { Modal } from "@/components/ui/Modal";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { LineChartWidget } from "@/components/charts/LineChartWidget";
 import { FormErrorAlert } from "@/components/ui/FormErrorAlert";
+import { syncGoalForBucket, GOAL_BUCKET_MAP } from "@/lib/goal-sync";
 import { Plus, Target, Lock, Trash2, PlusCircle, CheckCircle2 } from "lucide-react";
 
 const FG = { marginBottom: 16 } as const;
@@ -93,11 +94,6 @@ export default function Goals() {
     }
   }
 
-  const GOAL_BUCKET_MAP: Record<string, "reserva" | "empreendedor"> = {
-    "Reserva de Emergência": "reserva",
-    "Caixa Empreendedor": "empreendedor",
-  };
-
   async function handleAporte(goalId: string) {
     const val = parseFloat(aporte);
     if (isNaN(val) || val <= 0) {
@@ -112,45 +108,32 @@ export default function Goals() {
       if (authErr || !user) { setAportError("Sessão expirada."); setLoading(false); return; }
 
       const goal = goals.find((g) => g.id === goalId)!;
-      const newAmount = goal.current_amount + val;
-      const { error } = await supabase
-        .from("goals")
-        .update({ current_amount: newAmount, updated_at: new Date().toISOString() })
-        .eq("id", goalId);
+      const bucket = GOAL_BUCKET_MAP[goal.name];
 
-      if (error) {
-        console.error("[aporte]", error);
-        setAportError(`Erro: ${error.message}`);
+      if (bucket) {
+        // Mapped goal: create a transaction — syncGoalForBucket handles current_amount
+        const today = new Date().toISOString().slice(0, 10);
+        const { data: txData, error: txError } = await supabase
+          .from("transactions")
+          .insert({ user_id: user.id, description: `Aporte · ${goal.name}`,
+            amount: val, category: "Poupança", bucket, type: "despesa", date: today })
+          .select().single();
+        if (txError) { setAportError(`Erro: ${txError.message}`); return; }
+        addTransaction(txData);
+        await syncGoalForBucket(bucket, val, goals, updateGoal);
       } else {
+        // Custom goal: no bucket mapping, just update current_amount directly
+        const newAmount = goal.current_amount + val;
+        const { error } = await supabase
+          .from("goals")
+          .update({ current_amount: newAmount, updated_at: new Date().toISOString() })
+          .eq("id", goalId);
+        if (error) { setAportError(`Erro: ${error.message}`); return; }
         updateGoal(goalId, { current_amount: newAmount });
-
-        // Se a meta corresponde a um balde (reserva/empreendedor), criar transação
-        const bucket = GOAL_BUCKET_MAP[goal.name];
-        if (bucket) {
-          const today = new Date().toISOString().slice(0, 10);
-          const { data: txData, error: txError } = await supabase
-            .from("transactions")
-            .insert({
-              user_id: user.id,
-              description: `Aporte · ${goal.name}`,
-              amount: val,
-              category: "Poupança",
-              bucket,
-              type: "despesa",
-              date: today,
-            })
-            .select()
-            .single();
-          if (txError) {
-            console.error("[aporte tx]", txError);
-          } else if (txData) {
-            addTransaction(txData);
-          }
-        }
-
-        setAportOpen(null);
-        setAporte("");
       }
+
+      setAportOpen(null);
+      setAporte("");
     } catch (err: unknown) {
       setAportError(`Erro inesperado: ${err instanceof Error ? err.message : String(err)}`);
     } finally {

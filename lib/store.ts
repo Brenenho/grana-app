@@ -13,6 +13,7 @@ interface AppState {
   updateProfile: (data: Partial<Profile>) => void;
   setTransactions: (t: Transaction[]) => void;
   addTransaction: (t: Transaction) => void;
+  updateTransaction: (id: string, data: Partial<Transaction>) => void;
   deleteTransaction: (id: string) => void;
   setGoals: (g: Goal[]) => void;
   addGoal: (g: Goal) => void;
@@ -44,6 +45,8 @@ export const useAppStore = create<AppState>((set) => ({
   setTransactions: (transactions) => set({ transactions }),
   addTransaction: (t) =>
     set((s) => ({ transactions: [t, ...s.transactions] })),
+  updateTransaction: (id, data) =>
+    set((s) => ({ transactions: s.transactions.map((t) => (t.id === id ? { ...t, ...data } : t)) })),
   deleteTransaction: (id) =>
     set((s) => ({ transactions: s.transactions.filter((t) => t.id !== id) })),
   setGoals: (goals) => set({ goals }),
