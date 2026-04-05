@@ -257,14 +257,18 @@ export default function Budget() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 28 }}>
         {[
           { label: "Salário", value: formatBRL(salary), sub: "base mensal", color: "var(--text)" },
-          { label: "Comprometido", value: formatBRL(totalCommitted), sub: `${categories.length} categorias fixas`, color: "var(--blue)" },
+          { label: "Comprometido", value: formatBRL(totalCommitted), sub: `${categories.length} categori${categories.length === 1 ? "a" : "as"} planejada${categories.length === 1 ? "" : "s"}`, color: "var(--blue)" },
           { label: "Gasto real", value: formatBRL(totalTxSpent), sub: `${transactions.filter(t => t.type === "despesa").length} transações`, color: "var(--orange)" },
-          {
-            label: "Disponível",
-            value: formatBRL(Math.max(0, salary - Math.max(totalCommitted, totalTxSpent))),
-            sub: salary > 0 ? `${Math.max(0, 100 - Math.round((Math.max(totalCommitted, totalTxSpent) / salary) * 100))}% do salário` : "—",
-            color: salary - Math.max(totalCommitted, totalTxSpent) < 0 ? "var(--red)" : "var(--accent)",
-          },
+          (() => {
+            const totalAvailable = buckets.reduce((s, b) => s + b.remaining, 0);
+            const availPct = salary > 0 ? Math.max(0, Math.round((totalAvailable / salary) * 100)) : 0;
+            return {
+              label: "Disponível",
+              value: formatBRL(Math.max(0, totalAvailable)),
+              sub: salary > 0 ? `${availPct}% do salário — sobra dos baldes` : "—",
+              color: totalAvailable < 0 ? "var(--red)" : "var(--accent)",
+            };
+          })(),
         ].map(({ label, value, sub, color }) => (
           <Card key={label}>
             <div style={{ fontSize: 10.5, color: "var(--text3)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.6px", fontWeight: 600 }}>
