@@ -305,11 +305,14 @@ export default function Goals() {
                   const bucket = GOAL_BUCKET_MAP[g.name];
                   if (!bucket) return null;
                   const aportes = transactions.filter(t => t.bucket === bucket && t.type === "despesa");
-                  if (aportes.length === 0) return null;
                   return (
                     <div style={{ marginTop: 12, borderTop: "1px solid var(--border)", paddingTop: 10 }}>
                       <div style={{ fontSize: 10, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600, marginBottom: 6 }}>aportes do mês</div>
-                      {aportes.map(tx => (
+                      {aportes.length === 0 ? (
+                        <div style={{ fontSize: 11, color: "var(--text3)", fontStyle: "italic" }}>
+                          Nenhum aporte registrado este mês — use "Aportar" para adicionar.
+                        </div>
+                      ) : aportes.map(tx => (
                         <div key={tx.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
                           <div style={{ fontSize: 11, color: "var(--text3)", fontFamily: "var(--font-dm-mono)", whiteSpace: "nowrap" }}>{formatDate(tx.date)}</div>
                           <div style={{ flex: 1, fontSize: 12, color: "var(--text2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tx.description}</div>
@@ -322,15 +325,13 @@ export default function Goals() {
                   );
                 })()}
 
-                <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+                <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
                   <Button size="sm" variant="primary" onClick={() => { setAportOpen(g.id); setAporte(""); setAportError(""); }}>
                     <PlusCircle size={12} strokeWidth={2.5} /> Aportar
                   </Button>
-                  {!GOAL_BUCKET_MAP[g.name] && (
-                    <Button size="sm" onClick={() => { setAdjustGoalId(g.id); setAdjustValue(String(g.current_amount)); setAdjustError(""); }}>
-                      <Edit2 size={11} strokeWidth={2} /> Ajustar saldo
-                    </Button>
-                  )}
+                  <Button size="sm" onClick={() => { setAdjustGoalId(g.id); setAdjustValue(String(g.current_amount)); setAdjustError(""); }}>
+                    <Edit2 size={11} strokeWidth={2} /> Ajustar total
+                  </Button>
                   {!g.is_system && (
                     <Button size="sm" variant="danger" onClick={() => handleDelete(g.id)}>
                       <Trash2 size={12} strokeWidth={2} />
@@ -482,10 +483,10 @@ export default function Goals() {
         )}
       </Modal>
 
-      {/* Adjust balance modal (custom goals only) */}
-      <Modal open={adjustGoalId !== null} onClose={() => setAdjustGoalId(null)} title="Ajustar saldo acumulado">
+      {/* Adjust balance modal */}
+      <Modal open={adjustGoalId !== null} onClose={() => setAdjustGoalId(null)} title="Ajustar total acumulado">
         <div style={{ marginBottom: 12, fontSize: 12, color: "var(--text3)" }}>
-          Informe o saldo atual correto desta meta.
+          Define o total acumulado desta meta. Use para corrigir o saldo sem criar nova transação.
         </div>
         <div style={FG}>
           <label>Saldo acumulado (R$)</label>
