@@ -3,7 +3,8 @@ import { useState, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
 import { createClient } from "@/lib/supabase/client";
 import { projectGoals } from "@/lib/finance-logic";
-import { formatBRL } from "@/lib/utils";
+import { formatBRL, formatDate } from "@/lib/utils";
+import type { Transaction } from "@/types";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -13,19 +14,32 @@ import { ProgressBar } from "@/components/ui/ProgressBar";
 import { LineChartWidget } from "@/components/charts/LineChartWidget";
 import { FormErrorAlert } from "@/components/ui/FormErrorAlert";
 import { syncGoalForBucket, GOAL_BUCKET_MAP } from "@/lib/goal-sync";
-import { Plus, Target, Lock, Trash2, PlusCircle, CheckCircle2 } from "lucide-react";
+import { Plus, Target, Lock, Trash2, PlusCircle, CheckCircle2, Edit2 } from "lucide-react";
 
 const FG = { marginBottom: 16 } as const;
 const COLORS = ["#22c55e", "#3b82f6", "#a78bfa", "#f97316", "#eab308", "#06b6d4", "#ec4899"];
 
 export default function Goals() {
-  const { goals, addGoal, deleteGoal, updateGoal, addTransaction } = useAppStore();
+  const { goals, transactions, addGoal, deleteGoal, updateGoal, addTransaction, updateTransaction, deleteTransaction } = useAppStore();
   const [open, setOpen] = useState(false);
   const [aportOpen, setAportOpen] = useState<string | null>(null);
   const [aporte, setAporte] = useState("");
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState("");
   const [aportError, setAportError] = useState("");
+
+  // Edit aporte transaction
+  const [editTx, setEditTx] = useState<Transaction | null>(null);
+  const [editTxForm, setEditTxForm] = useState({ description: "", amount: "" });
+  const [editTxLoading, setEditTxLoading] = useState(false);
+  const [editTxError, setEditTxError] = useState("");
+  const [deletingTx, setDeletingTx] = useState<string | null>(null);
+
+  // Adjust balance for custom (non-mapped) goals
+  const [adjustGoalId, setAdjustGoalId] = useState<string | null>(null);
+  const [adjustValue, setAdjustValue] = useState("");
+  const [adjustLoading, setAdjustLoading] = useState(false);
+  const [adjustError, setAdjustError] = useState("");
   const [form, setForm] = useState({
     name: "", subtitle: "", target_amount: "", monthly_contribution: "", color: "#22c55e",
   });
@@ -91,6 +105,75 @@ export default function Goals() {
       setFormError(`Erro inesperado: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoading(false);
+    }
+  }
+
+  function openEditTx(tx: Transaction) {
+    setEditTx(tx);
+    setEditTxForm({ description: tx.description, amount: String(Math.abs(tx.amount)) });
+    setEditTxError("");
+  }
+
+  async function handleEditTx() {
+    if (!editTx) return;
+    const newVal = parseFloat(editTxForm.amount);
+    if (isNaN(newVal) || newVal <= 0) { setEditTxError("Valor deve ser maior que zero."); return; }
+    setEditTxLoading(true);
+    setEditTxError("");
+    try {
+      const supabase = createClient();
+      const { data: { user }, error: authErr } = await supabase.auth.getUser();
+      if (authErr || !user) { setEditTxError("Sessão expirada."); return; }
+      const newAmount = -Math.abs(newVal); // despesa
+      const { data, error } = await supabase
+        .from("transactions")
+        .update({ description: editTxForm.description.trim(), amount: newAmount })
+        .eq("id", editTx.id).eq("user_id", user.id)
+        .select().single();
+      if (error) { setEditTxError(`Erro: ${error.message}`); return; }
+      updateTransaction(editTx.id, data);
+      const delta = newVal - Math.abs(editTx.amount);
+      if (delta !== 0) await syncGoalForBucket(editTx.bucket, delta, goals, updateGoal);
+      setEditTx(null);
+    } catch (err: unknown) {
+      setEditTxError(`Erro inesperado: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setEditTxLoading(false);
+    }
+  }
+
+  async function handleDeleteTx(tx: Transaction) {
+    setDeletingTx(tx.id);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.from("transactions").delete().eq("id", tx.id);
+      if (error) { console.error("[deleteTx]", error); return; }
+      deleteTransaction(tx.id);
+      await syncGoalForBucket(tx.bucket, -Math.abs(tx.amount), goals, updateGoal);
+    } finally {
+      setDeletingTx(null);
+    }
+  }
+
+  async function handleAdjustBalance() {
+    const goal = goals.find(g => g.id === adjustGoalId);
+    if (!goal) return;
+    const newVal = parseFloat(adjustValue);
+    if (isNaN(newVal) || newVal < 0) { setAdjustError("Informe um valor válido."); return; }
+    setAdjustLoading(true);
+    setAdjustError("");
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.from("goals")
+        .update({ current_amount: newVal, updated_at: new Date().toISOString() })
+        .eq("id", goal.id);
+      if (error) { setAdjustError(`Erro: ${error.message}`); return; }
+      updateGoal(goal.id, { current_amount: newVal });
+      setAdjustGoalId(null);
+    } catch (err: unknown) {
+      setAdjustError(`Erro inesperado: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setAdjustLoading(false);
     }
   }
 
@@ -217,10 +300,37 @@ export default function Goals() {
                   {done && <span style={{ color: g.color, fontWeight: 600 }}> · Meta concluída! 🎉</span>}
                 </div>
 
+                {/* Aportes do mês para metas mapeadas */}
+                {(() => {
+                  const bucket = GOAL_BUCKET_MAP[g.name];
+                  if (!bucket) return null;
+                  const aportes = transactions.filter(t => t.bucket === bucket && t.type === "despesa");
+                  if (aportes.length === 0) return null;
+                  return (
+                    <div style={{ marginTop: 12, borderTop: "1px solid var(--border)", paddingTop: 10 }}>
+                      <div style={{ fontSize: 10, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600, marginBottom: 6 }}>aportes do mês</div>
+                      {aportes.map(tx => (
+                        <div key={tx.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
+                          <div style={{ fontSize: 11, color: "var(--text3)", fontFamily: "var(--font-dm-mono)", whiteSpace: "nowrap" }}>{formatDate(tx.date)}</div>
+                          <div style={{ flex: 1, fontSize: 12, color: "var(--text2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tx.description}</div>
+                          <div style={{ fontSize: 12, fontWeight: 700, fontFamily: "var(--font-dm-mono)", color: g.color, whiteSpace: "nowrap" }}>{formatBRL(Math.abs(tx.amount))}</div>
+                          <Button size="sm" onClick={() => openEditTx(tx)}><Edit2 size={10} strokeWidth={2} /></Button>
+                          <Button size="sm" variant="danger" disabled={deletingTx === tx.id} onClick={() => handleDeleteTx(tx)}><Trash2 size={10} strokeWidth={2} /></Button>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+
                 <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
                   <Button size="sm" variant="primary" onClick={() => { setAportOpen(g.id); setAporte(""); setAportError(""); }}>
                     <PlusCircle size={12} strokeWidth={2.5} /> Aportar
                   </Button>
+                  {!GOAL_BUCKET_MAP[g.name] && (
+                    <Button size="sm" onClick={() => { setAdjustGoalId(g.id); setAdjustValue(String(g.current_amount)); setAdjustError(""); }}>
+                      <Edit2 size={11} strokeWidth={2} /> Ajustar saldo
+                    </Button>
+                  )}
                   {!g.is_system && (
                     <Button size="sm" variant="danger" onClick={() => handleDelete(g.id)}>
                       <Trash2 size={12} strokeWidth={2} />
@@ -343,6 +453,52 @@ export default function Goals() {
             {loading ? "Criando..." : "Criar meta"}
           </Button>
           <Button onClick={() => setOpen(false)}>Cancelar</Button>
+        </div>
+      </Modal>
+
+      {/* Edit aporte modal */}
+      <Modal open={editTx !== null} onClose={() => setEditTx(null)} title="Editar aporte">
+        {editTx && (
+          <>
+            <div style={FG}>
+              <label>Descrição</label>
+              <input value={editTxForm.description} autoFocus
+                onChange={(e) => { setEditTxForm(f => ({ ...f, description: e.target.value })); setEditTxError(""); }} />
+            </div>
+            <div style={FG}>
+              <label>Valor aportado (R$)</label>
+              <input type="number" value={editTxForm.amount} min="0.01" step="0.01"
+                onChange={(e) => { setEditTxForm(f => ({ ...f, amount: e.target.value })); setEditTxError(""); }}
+                onKeyDown={(e) => e.key === "Enter" && handleEditTx()} />
+            </div>
+            <FormErrorAlert message={editTxError} />
+            <div style={{ display: "flex", gap: 10 }}>
+              <Button variant="primary" onClick={handleEditTx} disabled={editTxLoading} style={{ flex: 1, justifyContent: "center" }}>
+                {editTxLoading ? "Salvando..." : "Salvar"}
+              </Button>
+              <Button onClick={() => setEditTx(null)}>Cancelar</Button>
+            </div>
+          </>
+        )}
+      </Modal>
+
+      {/* Adjust balance modal (custom goals only) */}
+      <Modal open={adjustGoalId !== null} onClose={() => setAdjustGoalId(null)} title="Ajustar saldo acumulado">
+        <div style={{ marginBottom: 12, fontSize: 12, color: "var(--text3)" }}>
+          Informe o saldo atual correto desta meta.
+        </div>
+        <div style={FG}>
+          <label>Saldo acumulado (R$)</label>
+          <input type="number" value={adjustValue} min="0" step="0.01" autoFocus
+            onChange={(e) => { setAdjustValue(e.target.value); setAdjustError(""); }}
+            onKeyDown={(e) => e.key === "Enter" && handleAdjustBalance()} />
+        </div>
+        <FormErrorAlert message={adjustError} />
+        <div style={{ display: "flex", gap: 10 }}>
+          <Button variant="primary" onClick={handleAdjustBalance} disabled={adjustLoading} style={{ flex: 1, justifyContent: "center" }}>
+            {adjustLoading ? "Salvando..." : "Confirmar"}
+          </Button>
+          <Button onClick={() => setAdjustGoalId(null)}>Cancelar</Button>
         </div>
       </Modal>
 
