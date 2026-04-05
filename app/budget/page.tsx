@@ -174,9 +174,10 @@ export default function Budget() {
     }
   }
 
-  // Total committed across all categories
+  // Committed = only fixo bucket categories (the only ones where monthly_limit
+  // actually constrains spending — calcBuckets uses committed as min spend only for fixo)
   const totalCommitted = useMemo(
-    () => categories.reduce((s, c) => s + c.monthly_limit, 0),
+    () => categories.filter((c) => c.bucket === "fixo").reduce((s, c) => s + c.monthly_limit, 0),
     [categories]
   );
 
@@ -257,7 +258,17 @@ export default function Budget() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 28 }}>
         {[
           { label: "Salário", value: formatBRL(salary), sub: "base mensal", color: "var(--text)" },
-          { label: "Comprometido", value: formatBRL(totalCommitted), sub: `${categories.length} categori${categories.length === 1 ? "a" : "as"} planejada${categories.length === 1 ? "" : "s"}`, color: "var(--blue)" },
+          (() => {
+            const fixoCats = catsByBucket.fixo;
+            const fixoBucket = buckets.find(b => b.bucket === "fixo");
+            const pctOfFixo = fixoBucket && fixoBucket.total > 0 ? Math.round((totalCommitted / fixoBucket.total) * 100) : 0;
+            return {
+              label: "Comprometido",
+              value: formatBRL(totalCommitted),
+              sub: `${fixoCats.length} conta${fixoCats.length === 1 ? "" : "s"} fixas · ${pctOfFixo}% do balde fixo`,
+              color: "var(--blue)" as const,
+            };
+          })(),
           { label: "Gasto real", value: formatBRL(totalTxSpent), sub: `${transactions.filter(t => t.type === "despesa").length} transações`, color: "var(--orange)" },
           (() => {
             const totalAvailable = buckets.reduce((s, b) => s + b.remaining, 0);
