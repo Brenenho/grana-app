@@ -283,16 +283,19 @@ export default function Budget() {
           })(),
           { label: "Gasto real", value: formatBRL(totalTxSpent), sub: `${transactions.filter(t => t.type === "despesa").length} transações`, color: "var(--orange)" },
           (() => {
-            const livreBucket = buckets.find(b => b.bucket === "livre");
-            const livreDisp = livreBucket?.remaining ?? 0;
-            const livreTotal = livreBucket?.total ?? 0;
-            const livreSpent = livreBucket?.spent ?? 0;
-            const livrePct = livreTotal > 0 ? Math.max(0, Math.round(((livreTotal - livreSpent) / livreTotal) * 100)) : 0;
+            const totalAvail = buckets.reduce((s, b) => s + b.remaining, 0);
+            const availPct = salary > 0 ? Math.max(0, Math.round((totalAvail / salary) * 100)) : 0;
+            const livreRemaining = buckets.find(b => b.bucket === "livre")?.remaining ?? 0;
+            const extraFromOthers = totalAvail - livreRemaining;
             return {
               label: "Disponível",
-              value: formatBRL(Math.max(0, livreDisp)),
-              sub: livreTotal > 0 ? `${livrePct}% do balde livre · ${formatBRL(livreTotal)}/mês` : "—",
-              color: livreDisp <= 0 ? "var(--red)" : "var(--accent)",
+              value: formatBRL(Math.max(0, totalAvail)),
+              sub: salary > 0
+                ? extraFromOthers > 0
+                  ? `livre + ${formatBRL(extraFromOthers)} de outros baldes · ${availPct}%`
+                  : `${availPct}% do salário`
+                : "—",
+              color: totalAvail <= 0 ? "var(--red)" : "var(--accent)",
             };
           })(),
         ].map(({ label, value, sub, color }) => (

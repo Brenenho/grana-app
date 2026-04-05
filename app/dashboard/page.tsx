@@ -66,9 +66,10 @@ export default function Dashboard() {
   const salary = profile?.salary ?? 0;
 
   const buckets = useMemo(() => calcBuckets(salary, transactions, categories), [salary, transactions, categories]);
+  // Exclude livre bucket from alerts — free spending shouldn't trigger limit warnings
   const limits = useMemo(() => {
     const m: Record<string, number> = {};
-    categories.forEach((c) => { m[c.name] = c.monthly_limit; });
+    categories.filter(c => c.bucket !== "livre").forEach((c) => { m[c.name] = c.monthly_limit; });
     return m;
   }, [categories]);
 
@@ -99,8 +100,10 @@ export default function Dashboard() {
     totalReceita: transactions.filter(t => t.type === "receita").reduce((s, t) => s + Math.abs(t.amount), 0),
   }), [transactions]);
 
-  const saldo = salary - totalGasto;
-  const usedPct = salary > 0 ? Math.round((totalGasto / salary) * 100) : 0;
+  // saldo = soma dos remainders de todos os baldes — já considera fixo committed
+  // como auto-debitado (calcBuckets usa max(txSpent, committed) para o balde fixo)
+  const saldo = useMemo(() => buckets.reduce((s, b) => s + b.remaining, 0), [buckets]);
+  const usedPct = salary > 0 ? Math.round(((salary - saldo) / salary) * 100) : 0;
 
   const h = new Date().getHours();
   const greeting = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
