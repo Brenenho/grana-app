@@ -103,13 +103,14 @@ export default function Budget() {
   }
 
   async function handleSaveCat() {
-    if (!catForm.name.trim() || !catForm.monthly_limit) {
-      setCatError("Nome e limite mensal são obrigatórios.");
+    if (!catForm.name.trim()) {
+      setCatError("Nome da categoria é obrigatório.");
       return;
     }
-    const limit = parseFloat(catForm.monthly_limit);
-    if (isNaN(limit) || limit <= 0) {
-      setCatError("Limite deve ser maior que zero.");
+    const isLivre = catForm.bucket === "livre";
+    const limit = isLivre && !catForm.monthly_limit ? 0 : parseFloat(catForm.monthly_limit);
+    if (!isLivre && (isNaN(limit) || limit <= 0)) {
+      setCatError("Limite mensal é obrigatório para este balde.");
       return;
     }
     setCatLoading(true);
@@ -271,13 +272,16 @@ export default function Budget() {
           })(),
           { label: "Gasto real", value: formatBRL(totalTxSpent), sub: `${transactions.filter(t => t.type === "despesa").length} transações`, color: "var(--orange)" },
           (() => {
-            const totalAvailable = buckets.reduce((s, b) => s + b.remaining, 0);
-            const availPct = salary > 0 ? Math.max(0, Math.round((totalAvailable / salary) * 100)) : 0;
+            const livreBucket = buckets.find(b => b.bucket === "livre");
+            const livreDisp = livreBucket?.remaining ?? 0;
+            const livreTotal = livreBucket?.total ?? 0;
+            const livreSpent = livreBucket?.spent ?? 0;
+            const livrePct = livreTotal > 0 ? Math.max(0, Math.round(((livreTotal - livreSpent) / livreTotal) * 100)) : 0;
             return {
               label: "Disponível",
-              value: formatBRL(Math.max(0, totalAvailable)),
-              sub: salary > 0 ? `${availPct}% do salário — sobra dos baldes` : "—",
-              color: totalAvailable < 0 ? "var(--red)" : "var(--accent)",
+              value: formatBRL(Math.max(0, livreDisp)),
+              sub: livreTotal > 0 ? `${livrePct}% do balde livre · ${formatBRL(livreTotal)}/mês` : "—",
+              color: livreDisp <= 0 ? "var(--red)" : "var(--accent)",
             };
           })(),
         ].map(({ label, value, sub, color }) => (
@@ -613,13 +617,13 @@ export default function Budget() {
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
           <div>
-            <label>Limite mensal (R$) *</label>
+            <label>Limite mensal (R$){catForm.bucket !== "livre" ? " *" : " (opcional)"}</label>
             <input
               type="number"
-              placeholder="0"
+              placeholder={catForm.bucket === "livre" ? "sem limite" : "0"}
               value={catForm.monthly_limit}
               onChange={(e) => { setCatForm((f) => ({ ...f, monthly_limit: e.target.value })); setCatError(""); }}
-              min="0.01"
+              min="0"
               step="10"
             />
           </div>
@@ -677,7 +681,7 @@ export default function Budget() {
         </div>
 
         {/* Preview */}
-        {catForm.name && parsedLimit > 0 && (
+        {catForm.name && (parsedLimit > 0 || catForm.bucket === "livre") && (
           <div style={{
             marginBottom: 16, padding: "10px 14px", borderRadius: 10,
             background: "var(--bg4)", border: "1px solid var(--border)",
@@ -691,7 +695,7 @@ export default function Budget() {
             <div>
               <span style={{ fontWeight: 600 }}>{catForm.name}</span>
               <span style={{ color: "var(--text3)", marginLeft: 8 }}>
-                {formatBRL(parsedLimit)} / mês
+                {parsedLimit > 0 ? `${formatBRL(parsedLimit)} / mês` : "sem limite"}
               </span>
               <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 2 }}>
                 {BUCKET_LABELS[catForm.bucket]}
