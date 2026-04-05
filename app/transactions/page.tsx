@@ -170,8 +170,8 @@ export default function Transactions() {
     }
   }
 
-  const totalDespesas = transactions.filter(t => t.type === "despesa").reduce((s, t) => s + Math.abs(t.amount), 0);
-  const totalReceitas = transactions.filter(t => t.type === "receita").reduce((s, t) => s + Math.abs(t.amount), 0);
+  const totalDespesas = transactions.filter(t => t.type === "despesa" && t.category !== "Transferência").reduce((s, t) => s + Math.abs(t.amount), 0);
+  const totalReceitas = transactions.filter(t => t.type === "receita" && t.category !== "Transferência").reduce((s, t) => s + Math.abs(t.amount), 0);
 
   return (
     <div className="fade-up">

@@ -5,15 +5,21 @@ export function calcBuckets(salary: number, txs: Transaction[], categories: Budg
   return (Object.keys(BUCKET_CONFIG) as Bucket[]).map((bucket) => {
     const cfg = BUCKET_CONFIG[bucket];
     const total = Math.round(salary * cfg.pct);
+    // Regular spending (excludes internal transfers)
     const txSpent = txs
-      .filter((t) => t.bucket === bucket && t.type === "despesa")
+      .filter((t) => t.bucket === bucket && t.type === "despesa" && t.category !== "Transferência")
+      .reduce((s, t) => s + Math.abs(t.amount), 0);
+    // Internal transfers tracked separately so they bypass the committed floor
+    const transferOut = txs
+      .filter((t) => t.bucket === bucket && t.type === "despesa" && t.category === "Transferência")
+      .reduce((s, t) => s + Math.abs(t.amount), 0);
+    const transferIn = txs
+      .filter((t) => t.bucket === bucket && t.type === "receita" && t.category === "Transferência")
       .reduce((s, t) => s + Math.abs(t.amount), 0);
     const committed = categories
       .filter((c) => c.bucket === bucket)
       .reduce((s, c) => s + c.monthly_limit, 0);
-    const txTransferIn = txs
-      .filter((t) => t.bucket === bucket && t.type === "receita" && t.category === "Transferência")
-      .reduce((s, t) => s + Math.abs(t.amount), 0);
+    // committed floor only applies to regular spending, not transfers
     const spent = bucket === "fixo"
       ? Math.max(Math.round(txSpent), committed)
       : Math.round(txSpent);
@@ -23,7 +29,7 @@ export function calcBuckets(salary: number, txs: Transaction[], categories: Budg
       pct: cfg.pct,
       total,
       spent,
-      remaining: Math.max(0, total + Math.round(txTransferIn) - spent),
+      remaining: Math.max(0, total + Math.round(transferIn) - Math.round(transferOut) - spent),
       color: cfg.color,
       committed,
     };

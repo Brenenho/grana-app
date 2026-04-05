@@ -246,7 +246,7 @@ export default function Budget() {
 
   // Total transaction spending
   const totalTxSpent = useMemo(
-    () => transactions.filter((t) => t.type === "despesa").reduce((s, t) => s + Math.abs(t.amount), 0),
+    () => transactions.filter((t) => t.type === "despesa" && t.category !== "Transferência").reduce((s, t) => s + Math.abs(t.amount), 0),
     [transactions]
   );
 
@@ -332,7 +332,7 @@ export default function Budget() {
               color: "var(--blue)" as const,
             };
           })(),
-          { label: "Gasto real", value: formatBRL(totalTxSpent), sub: `${transactions.filter(t => t.type === "despesa").length} transações`, color: "var(--orange)" },
+          { label: "Gasto real", value: formatBRL(totalTxSpent), sub: `${transactions.filter(t => t.type === "despesa" && t.category !== "Transferência").length} transações`, color: "var(--orange)" },
           (() => {
             const totalAvail = buckets.reduce((s, b) => s + b.remaining, 0);
             const availPct = salary > 0 ? Math.max(0, Math.round((totalAvail / salary) * 100)) : 0;

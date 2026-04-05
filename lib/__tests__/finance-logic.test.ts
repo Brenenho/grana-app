@@ -62,22 +62,47 @@ describe("calcBuckets", () => {
     expect(totalRemaining).toBe(3000); // 5000 - 2000
   });
 
-  it("transfer: receita with category='Transferência' increases destination remaining", () => {
+  it("transfer from fixo with committed: bypasses committed floor, reduces remaining correctly", () => {
+    // committed=2000, fixo.total=2500 → remaining=500 before transfer
+    // transfer R$500 OUT should bring remaining to 0, not be swallowed by max(txSpent, committed)
+    const cats = [makeCat({ monthly_limit: 2000, bucket: "fixo" })];
     const txs = [
       makeTx({ amount: -500, bucket: "fixo", type: "despesa", category: "Transferência" }),
       makeTx({ amount: 500, bucket: "livre", type: "receita", category: "Transferência" }),
     ];
-    const buckets = calcBuckets(5000, txs, []);
+    const buckets = calcBuckets(5000, txs, cats);
     const fixo = buckets.find(b => b.bucket === "fixo")!;
     const livre = buckets.find(b => b.bucket === "livre")!;
-    expect(fixo.remaining).toBe(2000); // 2500 - 500
-    expect(livre.remaining).toBe(1750); // 1250 + 500 (transfer in)
+    expect(fixo.remaining).toBe(0);   // 2500 + 0 - 500(transferOut) - 2000(committed) = 0
+    expect(livre.remaining).toBe(1750); // 1250 + 500(transferIn) - 0 = 1750
+  });
+
+  it("transfer: total remaining is conserved (no money created/destroyed)", () => {
+    const cats = [makeCat({ monthly_limit: 2000, bucket: "fixo" })];
+    const txs = [
+      makeTx({ amount: -500, bucket: "fixo", type: "despesa", category: "Transferência" }),
+      makeTx({ amount: 500, bucket: "livre", type: "receita", category: "Transferência" }),
+    ];
+    const before = calcBuckets(5000, [], cats).reduce((s, b) => s + b.remaining, 0);
+    const after = calcBuckets(5000, txs, cats).reduce((s, b) => s + b.remaining, 0);
+    expect(after).toBe(before); // transfer is zero-sum
   });
 
   it("transfer: non-Transferência receita does NOT affect remaining", () => {
     const txs = [makeTx({ amount: 500, bucket: "livre", type: "receita", category: "Outros" })];
     const [livre] = calcBuckets(5000, txs, []).filter(b => b.bucket === "livre");
     expect(livre.remaining).toBe(1250); // not affected
+  });
+
+  it("transfer out excludes from regular txSpent", () => {
+    // A transfer out of fixo should NOT count towards txSpent used in max(txSpent, committed)
+    const cats = [makeCat({ monthly_limit: 2000, bucket: "fixo" })];
+    const txs = [makeTx({ amount: -100, bucket: "fixo", type: "despesa", category: "Transferência" })];
+    const [fixo] = calcBuckets(5000, txs, cats).filter(b => b.bucket === "fixo");
+    // spent = max(regular txSpent=0, committed=2000) = 2000; transferOut=100
+    // remaining = 2500 - 100 - 2000 = 400
+    expect(fixo.spent).toBe(2000);
+    expect(fixo.remaining).toBe(400);
   });
 });
 

@@ -73,11 +73,11 @@ export default function Dashboard() {
     return m;
   }, [categories]);
 
-  // Savings trackers for reserva/empreendedor
+  // Savings trackers for reserva/empreendedor (aportes = despesa, not receita)
   const savingsThisMonth = useMemo(() => {
     const m: Record<string, number> = {};
     for (const t of transactions) {
-      if (SAVINGS_BUCKETS.has(t.bucket) && t.type === "receita") {
+      if (SAVINGS_BUCKETS.has(t.bucket) && t.type === "despesa" && t.category !== "Transferência") {
         m[t.bucket] = (m[t.bucket] ?? 0) + Math.abs(t.amount);
       }
     }
@@ -96,8 +96,8 @@ export default function Dashboard() {
   const alerts = useMemo(() => detectAlerts(transactions, limits), [transactions, limits]);
 
   const { totalGasto, totalReceita } = useMemo(() => ({
-    totalGasto: transactions.filter(t => t.type === "despesa").reduce((s, t) => s + Math.abs(t.amount), 0),
-    totalReceita: transactions.filter(t => t.type === "receita").reduce((s, t) => s + Math.abs(t.amount), 0),
+    totalGasto: transactions.filter(t => t.type === "despesa" && t.category !== "Transferência").reduce((s, t) => s + Math.abs(t.amount), 0),
+    totalReceita: transactions.filter(t => t.type === "receita" && t.category !== "Transferência").reduce((s, t) => s + Math.abs(t.amount), 0),
   }), [transactions]);
 
   // saldo = soma dos remainders de todos os baldes — já considera fixo committed
