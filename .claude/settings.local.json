@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(curl -s http://localhost:3001)",
+      "Bash(curl -s http://localhost:3001/api/transactions)",
+      "Bash(node -e \"const {GoogleGenerativeAI} = require\\('@google/generative-ai'\\); console.log\\('OK', typeof GoogleGenerativeAI\\)\")",
+      "Bash(node -e ':*)",
+      "Bash(node -e \"const a = require\\('@anthropic-ai/sdk'\\); console.log\\('OK', typeof a.default\\)\")",
+      "Bash(gh --version)"
+    ]
+  }
+}

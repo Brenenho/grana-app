@@ -1,0 +1,152 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg:    #080809;
+  --bg2:   #0f0f11;
+  --bg3:   #161618;
+  --bg4:   #1d1d20;
+  --bg5:   #252529;
+
+  --border:  rgba(255,255,255,0.05);
+  --border2: rgba(255,255,255,0.09);
+  --border3: rgba(255,255,255,0.16);
+
+  --text:  #f0f0f3;
+  --text2: #8a8a9a;
+  --text3: #46465a;
+
+  --accent:      #4ade80;
+  --accent2:     #22c55e;
+  --accent-dim:  rgba(74,222,128,0.08);
+  --accent-glow: rgba(74,222,128,0.18);
+
+  --green:   #4ade80;
+  --blue:    #60a5fa;
+  --purple:  #a78bfa;
+  --orange:  #fb923c;
+  --yellow:  #facc15;
+  --red:     #f87171;
+  --cyan:    #22d3ee;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-dm-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg5); border-radius: 99px; }
+
+/* ── Form elements ─────────────────── */
+input, select, textarea {
+  background: var(--bg4) !important;
+  border: 1.5px solid var(--border2) !important;
+  border-radius: 10px !important;
+  color: var(--text) !important;
+  padding: 10px 14px !important;
+  font-size: 13.5px !important;
+  font-family: var(--font-dm-sans), system-ui, sans-serif !important;
+  outline: none !important;
+  transition: border-color 0.18s, box-shadow 0.18s !important;
+  width: 100%;
+}
+input::placeholder, textarea::placeholder { color: var(--text3) !important; }
+input:hover, select:hover, textarea:hover { border-color: var(--border3) !important; }
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-glow) !important;
+}
+input[type="date"] { color-scheme: dark; }
+input[type="number"]::-webkit-inner-spin-button { opacity: 0.3; }
+select {
+  cursor: pointer;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2346465a' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  padding-right: 36px !important;
+}
+select option { background: #161618; color: #f0f0f3; }
+label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text2);
+  margin-bottom: 6px;
+}
+
+/* ── Recharts ─────────────────────── */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line { stroke: rgba(255,255,255,0.03) !important; }
+.recharts-text { fill: var(--text3) !important; font-size: 11px !important; }
+.recharts-tooltip-cursor { fill: rgba(255,255,255,0.02) !important; }
+.recharts-tooltip-wrapper { filter: drop-shadow(0 8px 24px rgba(0,0,0,0.6)); }
+
+/* ── Animations ───────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position:  200% 0; }
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes typing {
+  0%,80%,100% { opacity: 0.2; transform: translateY(0); }
+  40%          { opacity: 1;   transform: translateY(-4px); }
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes numberReveal {
+  from { opacity: 0; transform: translateY(6px) scale(0.97); filter: blur(4px); }
+  to   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+@keyframes ringDraw {
+  from { stroke-dashoffset: 1000; }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 0.8; }
+}
+
+/* ── Utility classes ──────────────── */
+.fade-up   { animation: fadeUp 0.28s cubic-bezier(0.16,1,0.3,1) both; }
+.fade-in   { animation: fadeIn 0.2s ease both; }
+
+.skeleton {
+  background: linear-gradient(90deg, var(--bg3) 0%, var(--bg4) 50%, var(--bg3) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite;
+  border-radius: 8px;
+}
+
+/* ── Stagger helpers ──────────────── */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
