@@ -441,8 +441,9 @@ export default function Budget() {
           const monthsLeft = goal && goal.monthly_contribution > 0 && goal.target_amount > (goal.current_amount ?? 0)
             ? Math.ceil((goal.target_amount - (goal.current_amount ?? 0)) / goal.monthly_contribution)
             : 0;
+          const nowYM = (() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}`; })();
           const savedThisMonth = transactions
-            .filter(t => t.bucket === bucketKey && t.type === "despesa")
+            .filter(t => t.bucket === bucketKey && t.type === "despesa" && t.category !== "Transferência" && t.date.startsWith(nowYM))
             .reduce((s, t) => s + Math.abs(t.amount), 0);
           const targetMonthly = b.total;
           const savedPct = targetMonthly > 0 ? Math.min(100, Math.round((savedThisMonth / targetMonthly) * 100)) : 0;
@@ -510,9 +511,9 @@ export default function Budget() {
                     {savedPct}%
                   </div>
                 </div>
-                <ProgressBar pct={savedPct} color={didSave ? cfg.color : savedThisMonth > 0 ? "#facc15" : "var(--text3)"} height={3} />
+                <ProgressBar pct={savedPct} color={didSave ? cfg.color : savedThisMonth > 0 ? "#facc15" : `${cfg.color}55`} height={3} />
                 <div style={{ fontSize: 10, color: "var(--text3)", marginTop: 6 }}>
-                  {didSave ? "✓ Meta mensal atingida!" : savedThisMonth === 0 ? "Lance uma transação tipo Receita no balde para registrar que guardou" : `Faltam ${formatBRL(targetMonthly - savedThisMonth)} para bater a meta`}
+                  {didSave ? "✓ Meta mensal atingida!" : savedThisMonth === 0 ? "Nenhum aporte este mês — use a aba Metas para aportar" : `Faltam ${formatBRL(targetMonthly - savedThisMonth)} para bater a meta`}
                 </div>
               </div>
             </div>
