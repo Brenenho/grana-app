@@ -31,7 +31,7 @@ const INIT_CAT = {
 };
 
 export default function Budget() {
-  const { profile, transactions, goals, categories, addCategory, updateCategory, deleteCategory, updateProfile, addTransaction } = useAppStore();
+  const { profile, transactions, goals, categories, addCategory, updateCategory, deleteCategory, updateProfile, addTransaction, deleteTransaction } = useAppStore();
   const salary = profile?.salary ?? 0;
   const buckets = useMemo(() => calcBuckets(salary, transactions, categories), [salary, transactions, categories]);
 
@@ -107,6 +107,34 @@ export default function Budget() {
       }
     } finally {
       setPayingCat(null);
+    }
+  }
+
+  const [undoingCat, setUndoingCat] = useState<string | null>(null);
+
+  async function handleUndoPaid(cat: BudgetCategory) {
+    setUndoingCat(cat.id);
+    try {
+      const supabase = createClient();
+      const today = getLocalISOString();
+      const nowYM = today.slice(0, 7);
+      
+      const txsToDelete = transactions.filter(t => 
+        t.bucket === "fixo" && 
+        t.category === cat.name && 
+        t.type === "despesa" && 
+        t.date.startsWith(nowYM) &&
+        t.notes === "Marcado como pago no Orçamento"
+      );
+      
+      if (txsToDelete.length === 0) return;
+      const ids = txsToDelete.map(t => t.id);
+      const { error } = await supabase.from("transactions").delete().in("id", ids);
+      if (!error) {
+        ids.forEach(id => deleteTransaction(id));
+      }
+    } finally {
+      setUndoingCat(null);
     }
   }
 
@@ -298,15 +326,14 @@ export default function Budget() {
 
   // Committed = fixo category limits (auto-deducted monthly) +
   //             actual transactions in reserva/empreendedor buckets (manual aports)
+  // Committed = fixo projected + reserva total + empreendedor total
   const totalCommitted = useMemo(() => {
-    const fixoCommitted = categories
-      .filter((c) => c.bucket === "fixo")
-      .reduce((s, c) => s + c.monthly_limit, 0);
-    const savingsCommitted = transactions
-      .filter((t) => (t.bucket === "reserva" || t.bucket === "empreendedor") && t.type === "despesa")
-      .reduce((s, t) => s + Math.abs(t.amount), 0);
-    return fixoCommitted + savingsCommitted;
-  }, [categories, transactions]);
+    const fixoBucket = buckets.find(b => b.bucket === "fixo");
+    const reservaBucket = buckets.find(b => b.bucket === "reserva");
+    const empreendedorBucket = buckets.find(b => b.bucket === "empreendedor");
+    
+    return (fixoBucket?.projected ?? 0) + (reservaBucket?.total ?? 0) + (empreendedorBucket?.total ?? 0);
+  }, [buckets]);
 
   // Spending per category from transactions
   const spentByCategory = useMemo(() => {
@@ -395,13 +422,11 @@ export default function Budget() {
           { label: "Salário", value: formatBRL(salary), sub: "base mensal", color: "var(--text)" },
           (() => {
             const fixoCats = catsByBucket.fixo;
-            const savingsAported = transactions
-              .filter(t => (t.bucket === "reserva" || t.bucket === "empreendedor") && t.type === "despesa")
-              .reduce((s, t) => s + Math.abs(t.amount), 0);
+            const savingsTotal = (buckets.find(b => b.bucket === "reserva")?.total ?? 0) + (buckets.find(b => b.bucket === "empreendedor")?.total ?? 0);
             const pctOfSalary = salary > 0 ? Math.round((totalCommitted / salary) * 100) : 0;
             const parts = [
               `${fixoCats.length} conta${fixoCats.length === 1 ? "" : "s"} fixa${fixoCats.length === 1 ? "" : "s"}`,
-              ...(savingsAported > 0 ? [`+ ${formatBRL(savingsAported)} em poupança`] : []),
+              ...(savingsTotal > 0 ? [`+ metas de reserva`] : []),
             ];
             return {
               label: "Comprometido",
@@ -412,10 +437,12 @@ export default function Budget() {
           })(),
           { label: "Gasto real", value: formatBRL(totalTxSpent), sub: `${transactions.filter(t => t.type === "despesa" && t.category !== "Transferência").length} transações`, color: "var(--orange)" },
           (() => {
-            const totalAvail = buckets.reduce((s, b) => s + b.remaining, 0);
+            const bLivre = buckets.find(b => b.bucket === "livre");
+            const bFixo = buckets.find(b => b.bucket === "fixo");
+            const totalAvail = (bLivre?.remaining ?? 0) + (bFixo?.remaining ?? 0);
+            
             const availPct = salary > 0 ? Math.max(0, Math.round((totalAvail / salary) * 100)) : 0;
-            const livreRemaining = buckets.find(b => b.bucket === "livre")?.remaining ?? 0;
-            const extraFromOthers = totalAvail - livreRemaining;
+            const extraFromOthers = bFixo?.remaining ?? 0;
             return {
               label: "Disponível",
               value: formatBRL(Math.max(0, totalAvail)),
@@ -541,6 +568,7 @@ export default function Budget() {
                           <div style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{cat.name} <span style={{ fontSize: 10, color: "var(--accent)", marginLeft: 6, fontWeight: 600 }}>✓ Pago</span></div>
                           <div style={{ fontSize: 13, fontWeight: 700, fontFamily: "var(--font-dm-mono), monospace", color: "var(--text)", textAlign: "right" }}>{formatBRL(cat.amountSpent)}<div style={{ fontSize: 10, color: "var(--text3)", fontWeight: 400 }}>realizado</div></div>
                           <div style={{ display: "flex", gap: 4, marginLeft: 12 }}>
+                            <Button size="sm" variant="danger" disabled={undoingCat === cat.id} onClick={() => handleUndoPaid(cat)} style={{ background: "rgba(248,113,113,0.1)", color: "var(--red)", borderColor: "rgba(248,113,113,0.2)" }}><RefreshCw size={11} strokeWidth={2} /> {undoingCat === cat.id ? "..." : "Desfazer"}</Button>
                             <Button size="sm" onClick={() => openEditCat(cat.id)}><Edit2 size={11} strokeWidth={2} /></Button>
                             <Button size="sm" variant="danger" disabled={deletingCat === cat.id} onClick={() => handleDeleteCat(cat.id)}><Trash2 size={11} strokeWidth={2} /></Button>
                           </div>

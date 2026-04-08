@@ -16,9 +16,9 @@ export function calcBuckets(salary: number, txs: Transaction[], categories: Budg
       .filter((t) => t.bucket === bucket && t.type === "receita" && t.category === "Transferência")
       .reduce((s, t) => s + Math.abs(t.amount), 0);
     
-    const committed = categories
+    const committed = bucket === "fixo" ? categories
       .filter((c) => c.bucket === bucket)
-      .reduce((s, c) => s + c.monthly_limit, 0);
+      .reduce((s, c) => s + c.monthly_limit, 0) : 0;
 
     let projected = Math.round(txSpent);
 
@@ -43,7 +43,7 @@ export function calcBuckets(salary: number, txs: Transaction[], categories: Budg
       });
       projected = Math.round(proj);
     } else {
-      projected = Math.max(Math.round(txSpent), committed);
+      projected = Math.round(txSpent);
     }
 
     return {

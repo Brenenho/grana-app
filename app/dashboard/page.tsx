@@ -102,10 +102,11 @@ export default function Dashboard() {
     totalReceita: transactions.filter(t => t.type === "receita" && t.category !== "Transferência").reduce((s, t) => s + Math.abs(t.amount), 0),
   }), [transactions]);
 
-  // saldo = soma dos remainders de todos os baldes — já considera fixo committed
-  // como auto-debitado (calcBuckets usa max(txSpent, committed) para o balde fixo)
-  const saldo = useMemo(() => buckets.reduce((s, b) => s + b.remaining, 0), [buckets]);
-  const usedPct = salary > 0 ? Math.round(((salary - saldo) / salary) * 100) : 0;
+  // saldo = Caixa real disponível na conta corrente
+  // calculado subtraindo todos os gastos reais do salário + receitas extras.
+  // as projeções de custos fixos não são descontadas antecipadamente aqui, apenas os gastos realizados.
+  const saldo = salary + totalReceita - totalGasto;
+  const usedPct = salary > 0 ? Math.round(((totalGasto) / salary) * 100) : 0;
 
   const h = new Date().getHours();
   const greeting = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
