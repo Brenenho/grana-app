@@ -2,7 +2,7 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useAppStore } from "@/lib/store";
-import { calcBuckets, bucketUsagePct, detectAlerts } from "@/lib/finance-logic";
+import { calcBuckets, bucketUsagePct } from "@/lib/finance-logic";
 import { formatBRL, formatDate } from "@/lib/utils";
 import { BucketBadge } from "@/components/ui/Badge";
 import { CAT_COLORS } from "@/types";
@@ -66,12 +66,7 @@ export default function Dashboard() {
   const salary = profile?.salary ?? 0;
 
   const buckets = useMemo(() => calcBuckets(salary, transactions, categories), [salary, transactions, categories]);
-  // Exclude livre bucket from alerts — free spending shouldn't trigger limit warnings
-  const limits = useMemo(() => {
-    const m: Record<string, number> = {};
-    categories.filter(c => c.bucket !== "livre").forEach((c) => { m[c.name] = c.monthly_limit; });
-    return m;
-  }, [categories]);
+
 
   // Savings trackers for reserva/empreendedor (aportes = despesa, not receita) — current month only
   const savingsThisMonth = useMemo(() => {
@@ -100,7 +95,7 @@ export default function Dashboard() {
   const reservaGoal = goalsByName["Reserva de Emergência"];
   const empreendedorGoal = goalsByName["Caixa Empreendedor"];
 
-  const alerts = useMemo(() => detectAlerts(transactions, limits), [transactions, limits]);
+
 
   const { totalGasto, totalReceita } = useMemo(() => ({
     totalGasto: transactions.filter(t => t.type === "despesa" && t.category !== "Transferência").reduce((s, t) => s + Math.abs(t.amount), 0),
@@ -196,25 +191,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* ── Alerts ────────────────────────────────────────── */}
-      {alerts.length > 0 && (
-        <div style={{ marginBottom: 24, display: "flex", flexDirection: "column", gap: 6 }}>
-          {alerts.map((a, i) => (
-            <div key={i} style={{
-              padding: "9px 14px", borderRadius: 10,
-              display: "flex", alignItems: "center", gap: 9, fontSize: 12.5,
-              background: a.type === "danger" ? "rgba(248,113,113,0.07)" : "rgba(250,204,21,0.07)",
-              border: `1px solid ${a.type === "danger" ? "rgba(248,113,113,0.15)" : "rgba(250,204,21,0.15)"}`,
-              color: a.type === "danger" ? "var(--red)" : "var(--yellow)",
-            }}>
-              {a.type === "danger"
-                ? <XCircle size={13} strokeWidth={2} style={{ flexShrink: 0 }} />
-                : <AlertTriangle size={13} strokeWidth={2} style={{ flexShrink: 0 }} />}
-              {a.message}
-            </div>
-          ))}
-        </div>
-      )}
+
 
       {/* ── Projeção de sobra ─────────────────────────────── */}
       {salary > 0 && (() => {
