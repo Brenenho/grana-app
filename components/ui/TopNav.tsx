@@ -32,11 +32,10 @@ export default function TopNav() {
   return (
     <header
       style={{
-        position: "fixed",
+        position: "sticky",
         top: 12,
-        left: 20,
-        right: 20,
         height: 48,
+        margin: "12px 20px 24px",
         zIndex: 200,
         display: "flex",
         alignItems: "center",

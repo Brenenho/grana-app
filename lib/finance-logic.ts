@@ -142,7 +142,7 @@ export function detectAlerts(txs: Transaction[], limits: Record<string, number>)
     const lim = limits[cat];
     if (!lim) return;
     const pct = (spent / lim) * 100;
-    if (pct >= 100)
+    if (pct > 100)
       alerts.push({ type: "danger", message: `${cat}: limite estourado (R$${Math.round(spent)} / R$${lim})` });
     else if (pct >= 75)
       alerts.push({ type: "warning", message: `${cat}: ${Math.round(pct)}% do limite — Housel diria: preste atenção no padrão.` });

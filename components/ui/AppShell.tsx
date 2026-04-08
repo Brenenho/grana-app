@@ -8,7 +8,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
       <TopNav />
       <main style={{
-        paddingTop: 76,
+        paddingTop: 0,
         paddingBottom: 48,
         paddingLeft: 40,
         paddingRight: 40,
