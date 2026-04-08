@@ -3,7 +3,7 @@ import { useState, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
 import { createClient } from "@/lib/supabase/client";
 import { projectGoals } from "@/lib/finance-logic";
-import { formatBRL, formatDate } from "@/lib/utils";
+import { formatBRL, formatDate, getLocalISOString } from "@/lib/utils";
 import type { Transaction } from "@/types";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardTitle } from "@/components/ui/Card";
@@ -195,7 +195,7 @@ export default function Goals() {
 
       if (bucket) {
         // Mapped goal: create a transaction — syncGoalForBucket handles current_amount
-        const today = new Date().toISOString().slice(0, 10);
+        const today = getLocalISOString();
         const { data: txData, error: txError } = await supabase
           .from("transactions")
           .insert({ user_id: user.id, description: `Aporte · ${goal.name}`,

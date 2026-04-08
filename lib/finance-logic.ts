@@ -6,9 +6,8 @@ export function calcBuckets(salary: number, txs: Transaction[], categories: Budg
     const cfg = BUCKET_CONFIG[bucket];
     const total = Math.round(salary * cfg.pct);
     // Regular spending (excludes internal transfers)
-    const txSpent = txs
-      .filter((t) => t.bucket === bucket && t.type === "despesa" && t.category !== "Transferência")
-      .reduce((s, t) => s + Math.abs(t.amount), 0);
+    const bucketTxs = txs.filter((t) => t.bucket === bucket && t.type === "despesa" && t.category !== "Transferência");
+    const txSpent = bucketTxs.reduce((s, t) => s + Math.abs(t.amount), 0);
     // Internal transfers tracked separately so they bypass the committed floor
     const transferOut = txs
       .filter((t) => t.bucket === bucket && t.type === "despesa" && t.category === "Transferência")
@@ -16,22 +15,47 @@ export function calcBuckets(salary: number, txs: Transaction[], categories: Budg
     const transferIn = txs
       .filter((t) => t.bucket === bucket && t.type === "receita" && t.category === "Transferência")
       .reduce((s, t) => s + Math.abs(t.amount), 0);
+    
     const committed = categories
       .filter((c) => c.bucket === bucket)
       .reduce((s, c) => s + c.monthly_limit, 0);
-    // committed floor only applies to regular spending, not transfers
-    const spent = bucket === "fixo"
-      ? Math.max(Math.round(txSpent), committed)
-      : Math.round(txSpent);
+
+    let projected = Math.round(txSpent);
+
+    if (bucket === "fixo") {
+      const fixoCats = categories.filter((c) => c.bucket === "fixo");
+      
+      const spentByCat: Record<string, number> = {};
+      bucketTxs.forEach((t) => {
+        spentByCat[t.category] = (spentByCat[t.category] || 0) + Math.abs(t.amount);
+      });
+
+      let proj = 0;
+      fixoCats.forEach((c) => {
+        const catSpent = spentByCat[c.name] || 0;
+        proj += Math.max(catSpent, c.monthly_limit);
+        delete spentByCat[c.name];
+      });
+
+      // Add any fixed transactions that don't match a fixed category (orphans)
+      Object.values(spentByCat).forEach(amount => {
+        proj += amount;
+      });
+      projected = Math.round(proj);
+    } else {
+      projected = Math.max(Math.round(txSpent), committed);
+    }
+
     return {
       bucket,
       label: cfg.label,
       pct: cfg.pct,
       total,
-      spent,
-      remaining: Math.max(0, total + Math.round(transferIn) - Math.round(transferOut) - spent),
+      spent: Math.round(txSpent),
+      remaining: Math.max(0, total + Math.round(transferIn) - Math.round(transferOut) - projected),
       color: cfg.color,
       committed,
+      projected,
     };
   });
 }

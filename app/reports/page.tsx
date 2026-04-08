@@ -2,7 +2,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
 import { createClient } from "@/lib/supabase/client";
-import { formatBRL, monthLabel } from "@/lib/utils";
+import { formatBRL, monthLabel, getLocalISOString } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -42,7 +42,7 @@ export default function Reports() {
         .from("transactions")
         .select("*")
         .eq("user_id", user.id)
-        .gte("date", sixMonthsAgo.toISOString().slice(0, 10))
+        .gte("date", getLocalISOString(sixMonthsAgo))
         .order("date");
 
       if (!txs) { setLoading(false); return; }

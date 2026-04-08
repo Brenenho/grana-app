@@ -19,10 +19,15 @@ export function formatDate(dateStr: string): string {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 }
 
+export function getLocalISOString(date = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
 export function currentMonthRange() {
   const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+  const start = getLocalISOString(new Date(now.getFullYear(), now.getMonth(), 1));
+  const end = getLocalISOString(new Date(now.getFullYear(), now.getMonth() + 1, 0));
   return { start, end };
 }
 

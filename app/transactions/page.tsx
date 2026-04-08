@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useAppStore } from "@/lib/store";
 import { createClient } from "@/lib/supabase/client";
-import { formatBRL, formatDate } from "@/lib/utils";
+import { formatBRL, formatDate, getLocalISOString } from "@/lib/utils";
 import { syncGoalForBucket, isSavingsTx } from "@/lib/goal-sync";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardTitle } from "@/components/ui/Card";
@@ -33,7 +33,7 @@ const INIT = {
   category: "Mercado",
   bucket: "fixo" as Bucket,
   type: "despesa" as TxType,
-  date: new Date().toISOString().slice(0, 10),
+  date: getLocalISOString(),
   notes: "",
 };
 

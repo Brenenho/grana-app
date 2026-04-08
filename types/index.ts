@@ -69,6 +69,7 @@ export interface BucketSummary {
   remaining: number;
   color: string;
   committed?: number;
+  projected?: number;
 }
 
 export interface WishlistAnalysis {

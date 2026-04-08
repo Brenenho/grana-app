@@ -3,14 +3,14 @@ import { useMemo, useState } from "react";
 import { useAppStore } from "@/lib/store";
 import { createClient } from "@/lib/supabase/client";
 import { calcBuckets, bucketUsagePct } from "@/lib/finance-logic";
-import { formatBRL } from "@/lib/utils";
+import { formatBRL, getLocalISOString } from "@/lib/utils";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { FormErrorAlert } from "@/components/ui/FormErrorAlert";
-import { Bucket, BUCKET_CONFIG } from "@/types";
-import { Plus, Trash2, Edit2, Pencil, AlertCircle, CheckCircle2, ArrowRightLeft } from "lucide-react";
+import { Bucket, BUCKET_CONFIG, BudgetCategory } from "@/types";
+import { Plus, Trash2, Edit2, Pencil, AlertCircle, CheckCircle2, ArrowRightLeft, RefreshCw, Check } from "lucide-react";
 
 const CAT_ICONS = ["🏠","💡","💧","📱","📺","🛒","🚗","🚌","💊","🏋️","📚","🎓","🎮","🍔","☕","✈️","👕","💈","🐾","💰","🔧","💻","🎵","🎬","🏦","📦","🌐","💅","🧹","🧾"];
 const CAT_COLORS = ["#3b82f6","#22c55e","#a78bfa","#f97316","#eab308","#06b6d4","#ec4899","#14b8a6","#f43f5e","#84cc16","#8b5cf6","#fb923c"];
@@ -58,7 +58,7 @@ export default function Budget() {
       const supabase = createClient();
       const { data: { user }, error: authErr } = await supabase.auth.getUser();
       if (authErr || !user) { setTransferError("Sessão expirada."); return; }
-      const today = new Date().toISOString().slice(0, 10);
+      const today = getLocalISOString();
       const [{ data: outTx, error: outErr }, { data: inTx, error: inErr }] = await Promise.all([
         supabase.from("transactions").insert({
           user_id: user.id, description: `Transferência → ${BUCKET_LABELS[transferTo]}`,
@@ -78,6 +78,81 @@ export default function Budget() {
       setTransferError(`Erro inesperado: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setTransferLoading(false);
+    }
+  }
+
+  // Fixed Cost paid marking
+  const [payingCat, setPayingCat] = useState<string | null>(null);
+
+  async function handleMarkPaid(cat: BudgetCategory) {
+    if (!cat.monthly_limit) return;
+    setPayingCat(cat.id);
+    try {
+      const supabase = createClient();
+      const { data: { user }, error: authErr } = await supabase.auth.getUser();
+      if (authErr || !user) return;
+      const today = getLocalISOString();
+      const { data, error } = await supabase.from("transactions").insert({
+        user_id: user.id,
+        description: cat.name,
+        amount: -cat.monthly_limit,
+        category: cat.name,
+        bucket: "fixo",
+        type: "despesa",
+        date: today,
+        notes: "Marcado como pago no Orçamento",
+      }).select().single();
+      if (!error && data) {
+        addTransaction(data);
+      }
+    } finally {
+      setPayingCat(null);
+    }
+  }
+
+  // Reset Data modal
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState("");
+
+  async function handleResetData() {
+    setResetLoading(true);
+    setResetError("");
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não encontrado.");
+      
+      await Promise.all([
+        supabase.from("transactions").delete().eq("user_id", user.id),
+        supabase.from("budget_categories").delete().eq("user_id", user.id),
+        supabase.from("goals").delete().eq("user_id", user.id),
+        supabase.from("wishlist").delete().eq("user_id", user.id)
+      ]);
+
+      await supabase.from("goals").insert([
+        { user_id: user.id, name: 'Reserva de Emergência', subtitle: 'Meta: 6 meses de gastos (Ramit Sethi)', target_amount: 12000, current_amount: 0, monthly_contribution: 400, color: '#22c55e', is_system: true },
+        { user_id: user.id, name: 'Caixa Empreendedor', subtitle: 'Pague a si mesmo primeiro (Kiyosaki)', target_amount: 6000, current_amount: 0, monthly_contribution: 600, color: '#a78bfa', is_system: true }
+      ]);
+
+      await supabase.from("budget_categories").insert([
+        { user_id: user.id, name: 'Moradia', bucket: 'fixo', monthly_limit: 1000, color: '#a78bfa', icon: '🏠' },
+        { user_id: user.id, name: 'Mercado', bucket: 'fixo', monthly_limit: 500, color: '#3b82f6', icon: '🛒' },
+        { user_id: user.id, name: 'Telecom', bucket: 'fixo', monthly_limit: 100, color: '#06b6d4', icon: '📱' },
+        { user_id: user.id, name: 'Assinaturas', bucket: 'fixo', monthly_limit: 100, color: '#eab308', icon: '📺' },
+        { user_id: user.id, name: 'Transporte', bucket: 'fixo', monthly_limit: 300, color: '#f97316', icon: '🚗' },
+        { user_id: user.id, name: 'Delivery', bucket: 'livre', monthly_limit: 200, color: '#f97316', icon: '🍔' },
+        { user_id: user.id, name: 'Lazer', bucket: 'livre', monthly_limit: 300, color: '#22c55e', icon: '🎮' },
+        { user_id: user.id, name: 'Roupas', bucket: 'livre', monthly_limit: 200, color: '#ec4899', icon: '👕' },
+        { user_id: user.id, name: 'Saúde', bucket: 'fixo', monthly_limit: 150, color: '#14b8a6', icon: '🏥' },
+        { user_id: user.id, name: 'Educação', bucket: 'livre', monthly_limit: 200, color: '#8b5cf6', icon: '📚' },
+        { user_id: user.id, name: 'Outros', bucket: 'livre', monthly_limit: 200, color: '#888888', icon: '📦' },
+      ]);
+
+      window.location.reload();
+    } catch (err: unknown) {
+      setResetError(err instanceof Error ? err.message : String(err));
+      setResetLoading(false);
     }
   }
 
@@ -302,6 +377,9 @@ export default function Budget() {
           </p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
+          <Button variant="danger" onClick={() => setResetOpen(true)}>
+            <RefreshCw size={13} strokeWidth={2} /> Resetar Dados
+          </Button>
           <Button onClick={() => { setTransferOpen(true); setTransferAmount(""); setTransferError(""); }}>
             <ArrowRightLeft size={13} strokeWidth={2} /> Transferir sobra
           </Button>
@@ -388,8 +466,8 @@ export default function Budget() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, background: "var(--border)", borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
                 {[
                   { label: "Orçado", value: formatBRL(b.total), color: cfg.color },
-                  { label: "Comprometido", value: formatBRL(committed), color: committed > b.total ? "var(--red)" : "var(--blue)" },
-                  { label: "Sobra do balde", value: formatBRL(Math.max(0, b.total - committed)), color: b.total - committed < 0 ? "var(--red)" : "var(--accent)" },
+                  { label: "Projetado", value: formatBRL(b.projected ?? 0), color: (b.projected ?? 0) > b.total ? "var(--red)" : "var(--blue)" },
+                  { label: "Sobra do balde", value: formatBRL(b.remaining), color: b.remaining <= 0 ? "var(--red)" : "var(--accent)" },
                 ].map(({ label, value, color }) => (
                   <div key={label} style={{ background: "var(--bg2)", padding: "10px 14px" }}>
                     <div style={{ fontSize: 10, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600, marginBottom: 3 }}>{label}</div>
@@ -404,29 +482,75 @@ export default function Budget() {
               </div>
             </div>
 
-            {cats.length > 0 && (
-              <div style={{ borderTop: "1px solid var(--border)" }}>
-                {cats.map((cat, idx) => (
-                  <div key={cat.id} style={{
-                    padding: "11px 22px", display: "flex", alignItems: "center", gap: 12,
-                    borderTop: idx > 0 ? "1px solid var(--border)" : "none",
-                    transition: "background 0.1s",
-                  }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.015)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                  >
-                    <span style={{ fontSize: 18, width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", background: `${cat.color}14`, borderRadius: 8, flexShrink: 0 }}>{cat.icon}</span>
-                    <div style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{cat.name}</div>
-                    <span style={{ fontSize: 9, fontWeight: 700, color: cfg.color, background: `${cfg.color}14`, border: `1px solid ${cfg.color}30`, padding: "1px 6px", borderRadius: 4, letterSpacing: "0.5px", textTransform: "uppercase" }}>FIXO</span>
-                    <div style={{ fontSize: 13, fontWeight: 700, fontFamily: "var(--font-dm-mono), monospace", color: cfg.color, minWidth: 90, textAlign: "right" }}>{formatBRL(cat.monthly_limit)}<div style={{ fontSize: 10, color: "var(--text3)", fontWeight: 400 }}>/ mês</div></div>
-                    <div style={{ display: "flex", gap: 4 }}>
-                      <Button size="sm" onClick={() => openEditCat(cat.id)}><Edit2 size={11} strokeWidth={2} /></Button>
-                      <Button size="sm" variant="danger" disabled={deletingCat === cat.id} onClick={() => handleDeleteCat(cat.id)}><Trash2 size={11} strokeWidth={2} /></Button>
+            {cats.length > 0 && (() => {
+              const enrichedCats = cats.map(cat => {
+                const nowYM = getLocalISOString(today).slice(0, 7);
+                const amountSpent = transactions
+                  .filter(t => t.bucket === "fixo" && t.category === cat.name && t.type === "despesa" && t.date.startsWith(nowYM))
+                  .reduce((s, t) => s + Math.abs(t.amount), 0);
+                return { ...cat, amountSpent, isPaid: amountSpent > 0 };
+              });
+              const pendentes = enrichedCats.filter(c => !c.isPaid);
+              const pagos = enrichedCats.filter(c => c.isPaid);
+
+              return (
+                <div>
+                  {pendentes.length > 0 && (
+                    <div>
+                      <div style={{ padding: "12px 22px 4px", fontSize: 10, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.6px", fontWeight: 600, borderTop: "1px solid var(--border)" }}>
+                        Pendentes
+                      </div>
+                      {pendentes.map((cat, idx) => (
+                        <div key={cat.id} style={{
+                          padding: "11px 22px", display: "flex", alignItems: "center", gap: 12,
+                          borderTop: idx > 0 ? "1px solid var(--border)" : "none",
+                          transition: "background 0.1s",
+                        }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.015)")}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                        >
+                          <span style={{ fontSize: 18, width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", background: `${cat.color}14`, borderRadius: 8, flexShrink: 0 }}>{cat.icon}</span>
+                          <div style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{cat.name}</div>
+                          <div style={{ fontSize: 13, fontWeight: 700, fontFamily: "var(--font-dm-mono), monospace", color: cfg.color, textAlign: "right" }}>{formatBRL(cat.monthly_limit)}<div style={{ fontSize: 10, color: "var(--text3)", fontWeight: 400 }}>/mês</div></div>
+                          <div style={{ display: "flex", gap: 4, marginLeft: 12 }}>
+                            <Button size="sm" onClick={() => handleMarkPaid(cat)} disabled={payingCat === cat.id} style={{ background: "rgba(34,197,94,0.1)", color: "#22c55e", borderColor: "rgba(34,197,94,0.2)" }}><Check size={12} strokeWidth={3} /> {payingCat === cat.id ? "..." : "Pagar"}</Button>
+                            <Button size="sm" onClick={() => openEditCat(cat.id)}><Edit2 size={11} strokeWidth={2} /></Button>
+                            <Button size="sm" variant="danger" disabled={deletingCat === cat.id} onClick={() => handleDeleteCat(cat.id)}><Trash2 size={11} strokeWidth={2} /></Button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  )}
+
+                  {pagos.length > 0 && (
+                    <div>
+                      <div style={{ padding: "12px 22px 4px", fontSize: 10, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.6px", fontWeight: 600, borderTop: "1px solid var(--border)" }}>
+                        Já Paguei
+                      </div>
+                      {pagos.map((cat, idx) => (
+                        <div key={cat.id} style={{
+                          padding: "11px 22px", display: "flex", alignItems: "center", gap: 12,
+                          borderTop: idx > 0 ? "1px solid var(--border)" : "none",
+                          transition: "background 0.1s",
+                          opacity: 0.65
+                        }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.015)")}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                        >
+                          <span style={{ fontSize: 18, width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", background: `${cat.color}14`, borderRadius: 8, flexShrink: 0 }}>{cat.icon}</span>
+                          <div style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{cat.name} <span style={{ fontSize: 10, color: "var(--accent)", marginLeft: 6, fontWeight: 600 }}>✓ Pago</span></div>
+                          <div style={{ fontSize: 13, fontWeight: 700, fontFamily: "var(--font-dm-mono), monospace", color: "var(--text)", textAlign: "right" }}>{formatBRL(cat.amountSpent)}<div style={{ fontSize: 10, color: "var(--text3)", fontWeight: 400 }}>realizado</div></div>
+                          <div style={{ display: "flex", gap: 4, marginLeft: 12 }}>
+                            <Button size="sm" onClick={() => openEditCat(cat.id)}><Edit2 size={11} strokeWidth={2} /></Button>
+                            <Button size="sm" variant="danger" disabled={deletingCat === cat.id} onClick={() => handleDeleteCat(cat.id)}><Trash2 size={11} strokeWidth={2} /></Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         );
       })()}
@@ -822,10 +946,45 @@ export default function Budget() {
         </div>
         <FormErrorAlert message={transferError} />
         <div style={{ display: "flex", gap: 10 }}>
-          <Button variant="primary" onClick={handleTransfer} disabled={transferLoading} style={{ flex: 1, justifyContent: "center" }}>
-            {transferLoading ? "Transferindo..." : "Confirmar transferência"}
+          <Button
+            variant="primary"
+            onClick={handleTransfer}
+            disabled={transferLoading}
+            style={{ flex: 1, justifyContent: "center" }}
+          >
+            {transferLoading ? "Processando..." : "Confirmar transferência"}
           </Button>
           <Button onClick={() => setTransferOpen(false)}>Cancelar</Button>
+        </div>
+      </Modal>
+
+      {/* Reset Modal */}
+      <Modal open={resetOpen} onClose={() => setResetOpen(false)} title="🔥 Resetar Banco de Dados">
+        <div style={{ marginBottom: 16 }}>
+          <p style={{ fontSize: 14, color: "var(--text2)", marginBottom: 8 }}>
+            Você está prestes a <strong>limpar completamente a sua conta</strong>.
+          </p>
+          <p style={{ fontSize: 13, color: "var(--text3)", marginBottom: 16 }}>
+            Isso vai excluir todas as suas categorias de orçamento, metas, lista de desejos e TODAS as suas transações. E voltará a configuração padrão.
+          </p>
+          <div style={{
+            padding: "10px 14px", borderRadius: 10, background: "rgba(248,113,113,0.08)",
+            border: "1px solid rgba(248,113,113,0.15)", fontSize: 12, color: "var(--red)",
+          }}>
+            <strong>Aviso:</strong> Esta ação não pode ser desfeita. Tudo será apagado e os baldes originais da metodologia serão restaurados.
+          </div>
+        </div>
+        <FormErrorAlert message={resetError} />
+        <div style={{ display: "flex", gap: 10 }}>
+          <Button
+            variant="danger"
+            onClick={handleResetData}
+            disabled={resetLoading}
+            style={{ flex: 1, justifyContent: "center" }}
+          >
+            {resetLoading ? "Resetando mundo..." : "Sim, apagar tudo"}
+          </Button>
+          <Button onClick={() => setResetOpen(false)}>Cancelar</Button>
         </div>
       </Modal>
 
