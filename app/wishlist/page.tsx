@@ -231,35 +231,46 @@ export default function Wishlist() {
                 onMouseEnter={(e) => (e.currentTarget.style.transform = "translateX(2px)")}
                 onMouseLeave={(e) => (e.currentTarget.style.transform = "translateX(0)")}
               >
-                <div className="flex items-start sm:items-center gap-3 md:gap-4 flex-wrap sm:flex-nowrap">
-                  <div style={{
-                    width: 50, height: 50, flexShrink: 0, fontSize: 26,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    background: ss.iconBg, borderRadius: 12,
-                  }}>
-                    {item.icon}
-                  </div>
-
-                  <div className="flex-1 min-w-0 w-full sm:w-auto order-first sm:order-none mb-1 sm:mb-0">
-                    <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>{item.name}</div>
-                    <div style={{ fontSize: 12 }}>
-                      <span style={{ color: ss.textColor, fontWeight: 500 }}>{a.icon} {a.text}</span>
-                      <span style={{ color: "var(--text3)" }}> — {a.sub}</span>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                  {/* Top section: Icon, Info, and Price (on mobile) */}
+                  <div className="flex items-start gap-3 sm:gap-4 flex-1 w-full">
+                    <div style={{
+                      width: 50, height: 50, flexShrink: 0, fontSize: 26,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      background: ss.iconBg, borderRadius: 12,
+                    }}>
+                      {item.icon}
                     </div>
-                    {item.notes && <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 3 }}>{item.notes}</div>}
+
+                    <div className="flex-1 min-w-0 flex flex-col pt-[2px]">
+                      <div className="flex items-start justify-between gap-2">
+                        <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.2 }}>{item.name}</div>
+                        <div className="sm:hidden text-[16px] font-bold font-mono whitespace-nowrap shrink-0">
+                          {formatBRL(item.price)}
+                        </div>
+                      </div>
+                      
+                      <div style={{ fontSize: 12, marginTop: 4, lineHeight: 1.3 }}>
+                        <span style={{ color: ss.textColor, fontWeight: 500 }}>{a.icon} {a.text}</span>
+                        <span style={{ color: "var(--text3)" }}> — {a.sub}</span>
+                      </div>
+                      {item.notes && <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 3 }}>{item.notes}</div>}
+                    </div>
                   </div>
 
-                  <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "var(--font-dm-mono)", whiteSpace: "nowrap", flexShrink: 0 }}>
-                    {formatBRL(item.price)}
-                  </div>
-
-                  <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                    <Button size="sm" variant="primary" onClick={() => { setBuyItem(item); setBuyError(""); }}>
-                      <CheckCircle2 size={13} strokeWidth={2.5} /> Comprei
-                    </Button>
-                    <Button size="sm" variant="danger" onClick={() => handleDelete(item.id)}>
-                      <Trash2 size={12} strokeWidth={2} />
-                    </Button>
+                  {/* Actions Section */}
+                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start mt-1 sm:mt-0 pt-3 sm:pt-0 border-t border-[var(--border)] sm:border-0">
+                    <div className="hidden sm:block text-[18px] font-bold font-mono whitespace-nowrap shrink-0 mr-1">
+                      {formatBRL(item.price)}
+                    </div>
+                    <div style={{ display: "flex", gap: 8, width: "100%", justifyContent: "flex-end" }}>
+                      <Button size="sm" variant="primary" onClick={() => { setBuyItem(item); setBuyError(""); }} style={{ flex: "1 1 auto", justifyContent: "center" }}>
+                        <CheckCircle2 size={13} strokeWidth={2.5} /> Comprei
+                      </Button>
+                      <Button size="sm" variant="danger" onClick={() => handleDelete(item.id)} style={{ flexShrink: 0 }}>
+                        <Trash2 size={12} strokeWidth={2} />
+                      </Button>
+                    </div>
                   </div>
                 </div>
 

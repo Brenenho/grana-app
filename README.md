@@ -1,138 +1,50 @@
-# grana.app 💰
+# Grana App 💸
 
-App de finanças pessoais baseado no **Conscious Spending Plan** do Ramit Sethi, com a mentalidade do Morgan Housel e o princípio do caixa do Kiyosaki.
+O **Grana** é um aplicativo web completo e moderno de finanças pessoais, fundamentado no método de "baldes" (buckets) popularizado por Ramit Sethi. Desenvolvido para simplificar a organização financeira com uma interface imersiva, elegante e otimizada tanto para Desktop quanto Mobile.
 
-## Stack
+## 🎯 Objetivo
 
-- **Next.js 14** (App Router) + TypeScript + Tailwind CSS
-- **Supabase** — banco de dados + autenticação Google
-- **Google Gemini 1.5 Flash** — assistente IA
-- **Recharts** — gráficos
-- **Zustand** — estado global
-- **Vercel** — deploy
+Eliminar a complexidade das planilhas financeiras tradicionais oferecendo um sistema claro onde sua renda mensal é pré-alocada em "baldes" automáticos:
+- **Gastos Fixos** (Contas, Aluguel, Alimentação básica)
+- **Investimentos** (Ações, Renda Fixa)
+- **Metas Financeiras** (Reserva de Emergência, Viagens, Carro novo)
+- **Gastos Livres** (Lazer, Compras, Restaurantes)
 
----
+## ✨ Funcionalidades
 
-## Setup em 5 passos
+- **Dashboard Inteligente:** Uma visão holística e clean onde você acompanha seus "baldes", suas próximas metas e fluxo financeiro numa única tela.
+- **Orçador Automático:** Calculadora dinâmica das porcentagens da sua renda para cada categoria baseada nas melhores práticas financeiras globais.
+- **Transações:** Registro e categorização rápida das suas despesas e receitas.
+- **Lista de Desejos (Wishlist) Viável:** Quer comprar um fone ou tênis novo? A nossa wishlist analisa automaticamente seu balde de "Gastos Livres" e sua reserva de emergência pra dizer: *Pode comprar?* *Faltam quantos dias ou meses?* *Compromete algo?*
+- **Consultor via AI:** Integração inteligente na plataforma com dicas, análises e diagnósticos personalizados do seu cenário atual de contas. (Via Anthropic/OpenAI, etc).
+- **Relatórios:** Gráficos interativos focados no controle prático.
+- **Design Premium & Responsivo:** Interface belíssima de "Glassmorphism", suporte completo a Dark Mode/Vibrant UI e 100% responsiva para uso perfeito de celulares à desktops, além de interações e micro-animações (focadas em retenção e wow-factor).
 
-### 1. Clone e instale
+## 🚀 Tecnologias
 
-```bash
-git clone https://github.com/seu-usuario/grana-app
-cd grana-app
-npm install
-```
+- **Framework:** [Next.js](https://nextjs.org/) (App Router, React 18)
+- **Estilização:** [Tailwind CSS](https://tailwindcss.com/) com paletas customizadas
+- **Backend & Auth:** [Supabase](https://supabase.com/)
+- **Gerenciamento de Estado:** Zustand store otimizado `useAppStore`
+- **Ícones:** Lucide React
+- **Tipografia:** Google Fonts (DM Sans, DM Mono)
 
-### 2. Configure o Supabase
+## 📱 Mobile-First 
+Toda a plataforma foi refinada e auditada pra se comportar nativamente em mobile. Drawers automáticos, headers responsivos e os cartões se adaptam dinamicamente pra que a leitura de preços e botões de ação nunca estrangulem a usabilidade na menor das telas.
 
-1. Crie um projeto em [supabase.com](https://supabase.com)
-2. Vá em **SQL Editor** → **New Query**
-3. Cole o conteúdo de `supabase/schema.sql` e execute
-4. Vá em **Authentication → Providers → Google** e habilite
-   - Você vai precisar de um Client ID e Secret do Google Cloud Console
-   - Em "Redirect URL" copie o URL do Supabase (ex: `https://xxx.supabase.co/auth/v1/callback`)
+## 🏃 Como rodar localmente
 
-### 3. Configure o Google OAuth
-
-1. Acesse [console.cloud.google.com](https://console.cloud.google.com)
-2. Crie um projeto → **APIs & Services → Credentials**
-3. **Create Credentials → OAuth Client ID → Web Application**
-4. Em "Authorized redirect URIs" adicione: `https://SEU_PROJECT.supabase.co/auth/v1/callback`
-5. Copie o Client ID e Secret → cole no Supabase
-
-### 4. Configure as variáveis de ambiente
-
-```bash
-cp .env.local.example .env.local
-```
-
-Edite `.env.local`:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://SEU_PROJECT_ID.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_anon_key_aqui
-GEMINI_API_KEY=sua_gemini_key_aqui
-```
-
-- **Supabase keys**: Settings → API → Project URL + anon/public key
-- **Gemini key**: [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey) (gratuito)
-
-### 5. Rode localmente
-
-```bash
-npm run dev
-```
-
-Acesse [localhost:3000](http://localhost:3000)
+1. Tenha o Node.js v18+ instalado.
+2. Forme as variáveis de ambiente baseadas no `.env.example` apontando para a sua URL e Chave Pública do Supabase.
+3. Instale as dependências:
+   ```bash
+   npm install
+   ```
+4. Inicie o servidor:
+   ```bash
+   npm run dev
+   ```
+5. Acesse `http://localhost:3000`
 
 ---
-
-## Deploy na Vercel
-
-```bash
-npx vercel
-```
-
-Ou conecte o repositório no [vercel.com](https://vercel.com) e adicione as variáveis de ambiente no painel.
-
----
-
-## Funcionalidades
-
-| Módulo | Descrição |
-|--------|-----------|
-| **Dashboard** | Saldo dos baldes, alertas, gráficos, últimas transações |
-| **Transações** | CRUD completo com categorias e baldes |
-| **Baldes** | Visualização do Conscious Spending Plan (Ramit Sethi) |
-| **Metas** | Reserva + Caixa Empreendedor + metas customizadas com projeção 12 meses |
-| **Wishlist** | Análise de viabilidade de compras vs baldes |
-| **Relatórios** | Histórico 6 meses, comparativo por categoria |
-| **Assistente IA** | Chat com Gemini que conhece seus dados financeiros |
-
----
-
-## Lógica dos livros
-
-### Ramit Sethi — I Will Teach You to Be Rich
-Os 4 baldes distribuídos automaticamente do salário:
-- **Custos Fixos (50%)** — necessidades mensais
-- **Reserva de Emergência (10%)** — meta: 6 meses de gastos
-- **Caixa Empreendedor (15%)** — ativo bloqueado (Kiyosaki: "pague a si mesmo")
-- **Gastos Livres (25%)** — sem culpa
-
-### Morgan Housel — The Psychology of Money
-- Alertas comportamentais: detecta padrões de gasto antes de virar problema
-- Projeções visuais: mostra onde você vai estar em 12 meses se mantiver o ritmo
-
-### Robert Kiyosaki — Pai Rico, Pai Pobre
-- Caixa Empreendedor existe como balde separado e "invisível" no dia a dia
-- Só acessível com intenção deliberada para projetos
-
----
-
-## Estrutura do projeto
-
-```
-grana-app/
-├── app/
-│   ├── dashboard/        # Dashboard principal
-│   ├── transactions/     # Transações
-│   ├── budget/           # Baldes
-│   ├── goals/            # Metas
-│   ├── wishlist/         # Lista de desejos
-│   ├── reports/          # Relatórios
-│   ├── ai/               # Assistente IA
-│   ├── api/              # API routes
-│   └── login/            # Autenticação
-├── components/
-│   ├── charts/           # Recharts components
-│   └── ui/               # Componentes base
-├── lib/
-│   ├── finance-logic.ts  # Lógica dos baldes
-│   ├── store.ts          # Zustand
-│   └── supabase/         # Clients
-├── supabase/
-│   └── schema.sql        # Schema completo com RLS
-└── types/
-    └── index.ts          # Tipos TypeScript
-```
+> *Design e Inteligência moldados para trazer o controle da sua grana de volta para as suas mãos.*
