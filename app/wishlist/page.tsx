@@ -3,7 +3,7 @@ import { useState, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
 import { createClient } from "@/lib/supabase/client";
 import { calcBuckets, analyzeWish } from "@/lib/finance-logic";
-import { formatBRL } from "@/lib/utils";
+import { formatBRL, getLocalISOString } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -21,11 +21,15 @@ const STATUS_STYLES = {
 };
 
 export default function Wishlist() {
-  const { wishlist, addWishItem, deleteWishItem, profile, transactions, goals, categories } = useAppStore();
+  const { wishlist, addWishItem, deleteWishItem, profile, transactions, addTransaction, goals, categories } = useAppStore();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState("");
   const [form, setForm] = useState({ name: "", price: "", icon: "🎧", notes: "" });
+
+  const [buyItem, setBuyItem] = useState<any>(null);
+  const [buyLoading, setBuyLoading] = useState(false);
+  const [buyError, setBuyError] = useState("");
 
   const salary = profile?.salary ?? 0;
   const buckets = useMemo(() => calcBuckets(salary, transactions, categories), [salary, transactions, categories]);
@@ -94,11 +98,38 @@ export default function Wishlist() {
     else console.error("[deleteWishItem]", error);
   }
 
-  async function markBought(id: string) {
-    const supabase = createClient();
-    const { error } = await supabase.from("wishlist").update({ status: "comprado" }).eq("id", id);
-    if (!error) deleteWishItem(id);
-    else console.error("[markBought]", error);
+  async function confirmBought() {
+    if (!buyItem) return;
+    setBuyLoading(true);
+    setBuyError("");
+    try {
+      const supabase = createClient();
+      const { data: { user }, error: authErr } = await supabase.auth.getUser();
+      if (authErr || !user) { setBuyError("Sessão expirada."); return; }
+
+      const { data: txData, error: txError } = await supabase.from("transactions").insert({
+        user_id: user.id,
+        description: `Comprado: ${buyItem.name}`,
+        amount: -Math.abs(buyItem.price),
+        category: "Lazer",
+        bucket: "livre",
+        type: "despesa",
+        date: getLocalISOString()
+      }).select().single();
+
+      if (txError) { setBuyError(`Erro ao registrar despesa: ${txError.message}`); return; }
+
+      const { error: wError } = await supabase.from("wishlist").update({ status: "comprado" }).eq("id", buyItem.id);
+      if (wError) { setBuyError(`Erro ao atualizar wishlist: ${wError.message}`); return; }
+
+      addTransaction(txData);
+      deleteWishItem(buyItem.id);
+      setBuyItem(null);
+    } catch (err: unknown) {
+      setBuyError(`Erro inesperado: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setBuyLoading(false);
+    }
   }
 
   const active = wishlist.filter((w) => w.status === "pendente");
@@ -223,7 +254,7 @@ export default function Wishlist() {
                   </div>
 
                   <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                    <Button size="sm" variant="primary" onClick={() => markBought(item.id)}>
+                    <Button size="sm" variant="primary" onClick={() => { setBuyItem(item); setBuyError(""); }}>
                       <CheckCircle2 size={13} strokeWidth={2.5} /> Comprei
                     </Button>
                     <Button size="sm" variant="danger" onClick={() => handleDelete(item.id)}>
@@ -328,6 +359,41 @@ export default function Wishlist() {
           </Button>
           <Button onClick={() => setOpen(false)}>Cancelar</Button>
         </div>
+      </Modal>
+
+      {/* Confirm Buy Modal */}
+      <Modal open={buyItem !== null} onClose={() => setBuyItem(null)} title="Registrar Compra">
+        {buyItem && (
+          <div className="flex flex-col gap-4">
+            <div className="bg-[var(--bg2)] p-4 rounded-xl border border-[var(--border)] text-center">
+              <div className="text-3xl mb-2">{buyItem.icon}</div>
+              <div className="text-[17px] font-bold mb-1 leading-tight">{buyItem.name}</div>
+              <div className="text-xl font-bold text-[var(--red)] font-mono tracking-tight">-{formatBRL(buyItem.price)}</div>
+            </div>
+            
+            <div className="bg-[rgba(234,179,8,0.06)] border border-[rgba(234,179,8,0.2)] p-4 rounded-xl text-[13px] text-[var(--text2)] leading-relaxed">
+              <span className="block font-bold text-[var(--yellow)] mb-2">Consciência financeira:</span>
+              Comprar isso vai debitar <strong className="text-[var(--red)] font-mono">{formatBRL(buyItem.price)}</strong> do seu balde <strong>Gastos Livres</strong>.<br/><br/>
+              Seu saldo disponível para o dia a dia cairá de <strong className="font-mono">{formatBRL(livreDisp)}</strong> para <strong className="font-mono text-[var(--yellow)]">{formatBRL(livreDisp - buyItem.price)}</strong>.
+              <br/><br/>
+              Tem certeza que deseja prosseguir e criar a despesa automaticamente?
+            </div>
+
+            <FormErrorAlert message={buyError} />
+            
+            <div className="flex gap-[10px] mt-2">
+              <Button
+                variant="primary"
+                onClick={confirmBought}
+                disabled={buyLoading}
+                style={{ flex: 1, justifyContent: "center" }}
+              >
+                {buyLoading ? "Registrando..." : "Sim, confirmar e debitar"}
+              </Button>
+              <Button onClick={() => setBuyItem(null)}>Cancelar</Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );
