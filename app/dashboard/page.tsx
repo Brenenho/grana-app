@@ -119,8 +119,8 @@ export default function Dashboard() {
     <div className="fade-up">
 
       {/* ── Hero ───────────────────────────────────────────── */}
-      <div style={{ marginBottom: 32 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+      <div className="mb-6 md:mb-8">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-5 md:gap-0 mb-6">
           <div>
             <div style={{ fontSize: 13, color: "var(--text3)", marginBottom: 4 }}>
               {greeting}{firstName ? `, ${firstName}` : ""} · {month.charAt(0).toUpperCase() + month.slice(1)}
@@ -142,7 +142,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div style={{ textAlign: "right" }}>
+          <div className="text-left md:text-right">
             <div style={{ fontSize: 11, color: "var(--text3)", marginBottom: 2, letterSpacing: "0.4px", textTransform: "uppercase" }}>
               saldo disponível
             </div>
@@ -212,13 +212,7 @@ export default function Dashboard() {
         ];
 
         return (
-          <div style={{
-            background: "var(--bg2)",
-            border: "1px solid var(--border)",
-            borderRadius: 16,
-            padding: "20px 22px",
-            marginBottom: 24,
-          }}>
+          <div className="bg-[var(--bg2)] border border-[var(--border)] rounded-2xl p-4 md:p-[20px_22px] mb-6">
             <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text3)", letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: 16 }}>
               O que sobra no mês
             </div>
@@ -279,7 +273,7 @@ export default function Dashboard() {
       })()}
 
       {/* ── 4 Bucket cards ────────────────────────────────── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14, marginBottom: 24 }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-[14px] mb-6">
         {buckets.map((b, i) => {
           const isSavings = SAVINGS_BUCKETS.has(b.bucket);
           const goal = b.bucket === "reserva" ? reservaGoal : b.bucket === "empreendedor" ? empreendedorGoal : undefined;
@@ -303,16 +297,8 @@ export default function Dashboard() {
           return (
             <div
               key={b.bucket}
-              className={`fade-up stagger-${i + 1}`}
-              style={{
-                background: "var(--bg2)",
-                border: `1px solid var(--border)`,
-                borderRadius: 16,
-                padding: "20px 22px",
-                transition: "border-color 0.2s, box-shadow 0.2s",
-                position: "relative",
-                overflow: "hidden",
-              }}
+              className={`fade-up stagger-${i + 1} bg-[var(--bg2)] border border-[var(--border)] rounded-2xl p-4 md:p-[20px_22px] relative overflow-hidden transition-all`}
+              style={{ borderColor: "var(--border)" }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = `${b.color}40`;
                 e.currentTarget.style.boxShadow = `0 0 30px ${b.color}10`;
@@ -414,13 +400,8 @@ export default function Dashboard() {
       </div>
 
       {/* ── Recent transactions ───────────────────────────── */}
-      <div style={{
-        background: "var(--bg2)",
-        border: "1px solid var(--border)",
-        borderRadius: 16,
-        overflow: "hidden",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 22px", borderBottom: "1px solid var(--border)" }}>
+      <div className="bg-[var(--bg2)] border border-[var(--border)] rounded-2xl overflow-hidden">
+        <div className="flex items-center justify-between p-4 md:p-[16px_22px] border-b border-[var(--border)]">
           <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text2)", letterSpacing: "0.4px", textTransform: "uppercase" }}>
             Últimas transações
           </div>
@@ -447,17 +428,7 @@ export default function Dashboard() {
           <div>
             {transactions.slice(0, 7).map((t, idx) => (
               <div
-                key={t.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 14,
-                  padding: "11px 22px",
-                  borderBottom: idx < 6 && idx < transactions.length - 1 ? "1px solid var(--border)" : "none",
-                  transition: "background 0.1s",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.015)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                className={`flex items-center gap-3 md:gap-[14px] p-3 md:p-[11px_22px] transition-colors hover:bg-white/5 ${idx < 6 && idx < transactions.length - 1 ? "border-b border-[var(--border)]" : ""}`}
               >
                 {/* Color dot */}
                 <div style={{
@@ -477,7 +448,9 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <BucketBadge bucket={t.bucket} />
+                <div className="hidden sm:block">
+                  <BucketBadge bucket={t.bucket} />
+                </div>
 
                 <div style={{
                   fontSize: 13, fontWeight: 700,

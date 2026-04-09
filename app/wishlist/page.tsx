@@ -119,7 +119,7 @@ export default function Wishlist() {
       />
 
       {/* Status cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 14 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-[14px] mb-[14px]">
         <Card>
           <CardTitle>livre disponível</CardTitle>
           <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "var(--font-dm-mono)", color: "var(--orange)" }}>
@@ -200,7 +200,7 @@ export default function Wishlist() {
                 onMouseEnter={(e) => (e.currentTarget.style.transform = "translateX(2px)")}
                 onMouseLeave={(e) => (e.currentTarget.style.transform = "translateX(0)")}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <div className="flex items-start sm:items-center gap-3 md:gap-4 flex-wrap sm:flex-nowrap">
                   <div style={{
                     width: 50, height: 50, flexShrink: 0, fontSize: 26,
                     display: "flex", alignItems: "center", justifyContent: "center",
@@ -209,7 +209,7 @@ export default function Wishlist() {
                     {item.icon}
                   </div>
 
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="flex-1 min-w-0 w-full sm:w-auto order-first sm:order-none mb-1 sm:mb-0">
                     <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>{item.name}</div>
                     <div style={{ fontSize: 12 }}>
                       <span style={{ color: ss.textColor, fontWeight: 500 }}>{a.icon} {a.text}</span>
@@ -269,7 +269,7 @@ export default function Wishlist() {
             autoFocus
           />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, ...FG }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
           <div>
             <label>Preço (R$) *</label>
             <input

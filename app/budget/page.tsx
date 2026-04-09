@@ -416,8 +416,7 @@ export default function Budget() {
         </div>
       </div>
 
-      {/* Summary row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 28 }}>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-7">
         {[
           { label: "Salário", value: formatBRL(salary), sub: "base mensal", color: "var(--text)" },
           (() => {
@@ -425,8 +424,8 @@ export default function Budget() {
             const savingsTotal = (buckets.find(b => b.bucket === "reserva")?.total ?? 0) + (buckets.find(b => b.bucket === "empreendedor")?.total ?? 0);
             const pctOfSalary = salary > 0 ? Math.round((totalCommitted / salary) * 100) : 0;
             const parts = [
-              `${fixoCats.length} conta${fixoCats.length === 1 ? "" : "s"} fixa${fixoCats.length === 1 ? "" : "s"}`,
-              ...(savingsTotal > 0 ? [`+ metas de reserva`] : []),
+              `${fixoCats.length} contas`,
+              ...(savingsTotal > 0 ? [`+ metas`] : []),
             ];
             return {
               label: "Comprometido",
@@ -476,8 +475,8 @@ export default function Budget() {
         const statusColor = commitPct > 100 ? "var(--red)" : commitPct > 85 ? "var(--yellow)" : cfg.color;
         const cats = catsByBucket.fixo;
         return (
-          <div style={{ background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", marginBottom: 14 }}>
-            <div style={{ padding: "18px 22px 16px" }}>
+          <div className="bg-[var(--bg2)] border border-[var(--border)] rounded-2xl overflow-hidden mb-4">
+            <div className="p-4 md:p-[18px_22px_16px]">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <div style={{ width: 8, height: 8, borderRadius: 2, background: cfg.color }} />
@@ -490,15 +489,15 @@ export default function Budget() {
               </div>
 
               {/* Stats row */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, background: "var(--border)", borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
+              <div className="grid grid-cols-3 gap-[1px] bg-[var(--border)] rounded-[10px] overflow-hidden mb-3">
                 {[
                   { label: "Orçado", value: formatBRL(b.total), color: cfg.color },
                   { label: "Projetado", value: formatBRL(b.projected ?? 0), color: (b.projected ?? 0) > b.total ? "var(--red)" : "var(--blue)" },
-                  { label: "Sobra do balde", value: formatBRL(b.remaining), color: b.remaining <= 0 ? "var(--red)" : "var(--accent)" },
+                  { label: "Sobra", value: formatBRL(b.remaining), color: b.remaining <= 0 ? "var(--red)" : "var(--accent)" },
                 ].map(({ label, value, color }) => (
-                  <div key={label} style={{ background: "var(--bg2)", padding: "10px 14px" }}>
-                    <div style={{ fontSize: 10, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600, marginBottom: 3 }}>{label}</div>
-                    <div style={{ fontSize: 17, fontWeight: 700, fontFamily: "var(--font-dm-mono), monospace", color, letterSpacing: -0.4 }}>{value}</div>
+                  <div key={label} className="bg-[var(--bg2)] p-2 sm:p-2.5 md:p-[10px_14px]">
+                    <div className="text-[9px] sm:text-[10px] text-[var(--text3)] uppercase tracking-wide font-semibold mb-1 whitespace-nowrap overflow-hidden text-ellipsis">{label}</div>
+                    <div className="text-[13px] sm:text-[17px] font-bold font-mono tracking-tight" style={{ color }}>{value}</div>
                   </div>
                 ))}
               </div>
@@ -528,21 +527,14 @@ export default function Budget() {
                         Pendentes
                       </div>
                       {pendentes.map((cat, idx) => (
-                        <div key={cat.id} style={{
-                          padding: "11px 22px", display: "flex", alignItems: "center", gap: 12,
-                          borderTop: idx > 0 ? "1px solid var(--border)" : "none",
-                          transition: "background 0.1s",
-                        }}
-                          onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.015)")}
-                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                        >
+                        <div key={cat.id} className={`p-3 md:p-[11px_22px] flex items-center gap-2 md:gap-3 transition-colors hover:bg-white/5 ${idx > 0 ? "border-t border-[var(--border)]" : ""}`}>
                           <span style={{ fontSize: 18, width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", background: `${cat.color}14`, borderRadius: 8, flexShrink: 0 }}>{cat.icon}</span>
-                          <div style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{cat.name}</div>
-                          <div style={{ fontSize: 13, fontWeight: 700, fontFamily: "var(--font-dm-mono), monospace", color: cfg.color, textAlign: "right" }}>{formatBRL(cat.monthly_limit)}<div style={{ fontSize: 10, color: "var(--text3)", fontWeight: 400 }}>/mês</div></div>
-                          <div style={{ display: "flex", gap: 4, marginLeft: 12 }}>
-                            <Button size="sm" onClick={() => handleMarkPaid(cat)} disabled={payingCat === cat.id} style={{ background: "rgba(34,197,94,0.1)", color: "#22c55e", borderColor: "rgba(34,197,94,0.2)" }}><Check size={12} strokeWidth={3} /> {payingCat === cat.id ? "..." : "Pagar"}</Button>
-                            <Button size="sm" onClick={() => openEditCat(cat.id)}><Edit2 size={11} strokeWidth={2} /></Button>
-                            <Button size="sm" variant="danger" disabled={deletingCat === cat.id} onClick={() => handleDeleteCat(cat.id)}><Trash2 size={11} strokeWidth={2} /></Button>
+                          <div className="flex-1 min-w-0" style={{ fontSize: 13, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cat.name}</div>
+                          <div className="hidden sm:block" style={{ fontSize: 13, fontWeight: 700, fontFamily: "var(--font-dm-mono), monospace", color: cfg.color, textAlign: "right" }}>{formatBRL(cat.monthly_limit)}<div style={{ fontSize: 10, color: "var(--text3)", fontWeight: 400 }}>/mês</div></div>
+                          <div style={{ display: "flex", gap: 4, marginLeft: 8 }}>
+                            <Button size="sm" onClick={() => handleMarkPaid(cat)} disabled={payingCat === cat.id} style={{ background: "rgba(34,197,94,0.1)", color: "#22c55e", borderColor: "rgba(34,197,94,0.2)", padding: "0 6px" }}><Check size={12} strokeWidth={3} className="block md:hidden" /><span className="hidden md:inline-block ml-1">{payingCat === cat.id ? "..." : "Pagar"}</span></Button>
+                            <Button size="sm" onClick={() => openEditCat(cat.id)} style={{ padding: "0 6px" }}><Edit2 size={11} strokeWidth={2} /></Button>
+                            <Button size="sm" variant="danger" disabled={deletingCat === cat.id} onClick={() => handleDeleteCat(cat.id)} style={{ padding: "0 6px" }}><Trash2 size={11} strokeWidth={2} /></Button>
                           </div>
                         </div>
                       ))}
@@ -555,22 +547,14 @@ export default function Budget() {
                         Já Paguei
                       </div>
                       {pagos.map((cat, idx) => (
-                        <div key={cat.id} style={{
-                          padding: "11px 22px", display: "flex", alignItems: "center", gap: 12,
-                          borderTop: idx > 0 ? "1px solid var(--border)" : "none",
-                          transition: "background 0.1s",
-                          opacity: 0.65
-                        }}
-                          onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.015)")}
-                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                        >
+                        <div key={cat.id} className={`p-3 md:p-[11px_22px] flex items-center gap-2 md:gap-3 transition-colors hover:bg-white/5 opacity-65 ${idx > 0 ? "border-t border-[var(--border)]" : ""}`}>
                           <span style={{ fontSize: 18, width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", background: `${cat.color}14`, borderRadius: 8, flexShrink: 0 }}>{cat.icon}</span>
-                          <div style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{cat.name} <span style={{ fontSize: 10, color: "var(--accent)", marginLeft: 6, fontWeight: 600 }}>✓ Pago</span></div>
-                          <div style={{ fontSize: 13, fontWeight: 700, fontFamily: "var(--font-dm-mono), monospace", color: "var(--text)", textAlign: "right" }}>{formatBRL(cat.amountSpent)}<div style={{ fontSize: 10, color: "var(--text3)", fontWeight: 400 }}>realizado</div></div>
-                          <div style={{ display: "flex", gap: 4, marginLeft: 12 }}>
-                            <Button size="sm" variant="danger" disabled={undoingCat === cat.id} onClick={() => handleUndoPaid(cat)} style={{ background: "rgba(248,113,113,0.1)", color: "var(--red)", borderColor: "rgba(248,113,113,0.2)" }}><RefreshCw size={11} strokeWidth={2} /> {undoingCat === cat.id ? "..." : "Desfazer"}</Button>
-                            <Button size="sm" onClick={() => openEditCat(cat.id)}><Edit2 size={11} strokeWidth={2} /></Button>
-                            <Button size="sm" variant="danger" disabled={deletingCat === cat.id} onClick={() => handleDeleteCat(cat.id)}><Trash2 size={11} strokeWidth={2} /></Button>
+                          <div className="flex-1 min-w-0" style={{ fontSize: 13, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cat.name} <span style={{ fontSize: 10, color: "var(--accent)", marginLeft: 6, fontWeight: 600 }}>✓ Pago</span></div>
+                          <div className="hidden sm:block" style={{ fontSize: 13, fontWeight: 700, fontFamily: "var(--font-dm-mono), monospace", color: "var(--text)", textAlign: "right" }}>{formatBRL(cat.amountSpent)}<div style={{ fontSize: 10, color: "var(--text3)", fontWeight: 400 }}>realizado</div></div>
+                          <div style={{ display: "flex", gap: 4, marginLeft: 8 }}>
+                            <Button size="sm" variant="danger" disabled={undoingCat === cat.id} onClick={() => handleUndoPaid(cat)} style={{ background: "rgba(248,113,113,0.1)", color: "var(--red)", borderColor: "rgba(248,113,113,0.2)", padding: "0 6px" }}><RefreshCw size={11} strokeWidth={2} className="block md:hidden" /><span className="hidden md:inline-block ml-1">{undoingCat === cat.id ? "..." : "Desfazer"}</span></Button>
+                            <Button size="sm" onClick={() => openEditCat(cat.id)} style={{ padding: "0 6px" }}><Edit2 size={11} strokeWidth={2} /></Button>
+                            <Button size="sm" variant="danger" disabled={deletingCat === cat.id} onClick={() => handleDeleteCat(cat.id)} style={{ padding: "0 6px" }}><Trash2 size={11} strokeWidth={2} /></Button>
                           </div>
                         </div>
                       ))}
@@ -584,7 +568,7 @@ export default function Budget() {
       })()}
 
       {/* ── RESERVA + EMPREENDEDOR lado a lado ────────── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-[14px] mb-[14px]">
         {(["reserva", "empreendedor"] as Bucket[]).map(bucketKey => {
           const b = buckets.find(x => x.bucket === bucketKey)!;
           const cfg = BUCKET_CONFIG[bucketKey];
@@ -709,15 +693,15 @@ export default function Budget() {
               </div>
 
               {/* Main metrics */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1, background: "var(--border)", borderRadius: 10, overflow: "hidden", marginBottom: 12 }}>
+              <div className="grid grid-cols-3 gap-[1px] bg-[var(--border)] rounded-[10px] overflow-hidden mb-3">
                 {[
-                  { label: "Disponível no mês", value: formatBRL(b.total), color: cfg.color },
+                  { label: "Disponível", value: formatBRL(b.total), color: cfg.color },
                   { label: "Já gastou", value: formatBRL(spent), color: pct > 85 ? "var(--red)" : "var(--orange)" },
                   { label: "Ainda tem", value: formatBRL(remaining), color: remaining === 0 ? "var(--red)" : "var(--accent)" },
                 ].map(({ label, value, color }) => (
-                  <div key={label} style={{ background: "var(--bg2)", padding: "10px 14px" }}>
-                    <div style={{ fontSize: 10, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600, marginBottom: 3 }}>{label}</div>
-                    <div style={{ fontSize: 20, fontWeight: 700, fontFamily: "var(--font-dm-mono), monospace", color, letterSpacing: -0.5 }}>{value}</div>
+                  <div key={label} className="bg-[var(--bg2)] p-2 sm:p-2.5 md:p-[10px_14px]">
+                    <div className="text-[9px] sm:text-[10px] text-[var(--text3)] uppercase tracking-wide font-semibold mb-1 whitespace-nowrap overflow-hidden text-ellipsis">{label}</div>
+                    <div className="text-[13px] sm:text-[20px] font-bold font-mono tracking-tight" style={{ color }}>{value}</div>
                   </div>
                 ))}
               </div>
@@ -771,14 +755,7 @@ export default function Budget() {
                   últimas transações
                 </div>
                 {livreTransactions.map((t, i) => (
-                  <div key={t.id} style={{
-                    padding: "10px 22px", display: "flex", alignItems: "center", gap: 12,
-                    borderTop: i > 0 ? "1px solid var(--border)" : "none",
-                    transition: "background 0.1s",
-                  }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.015)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                  >
+                  <div key={t.id} className={`p-3 md:p-[10px_22px] flex items-center gap-2 md:gap-3 transition-colors hover:bg-white/5 ${i > 0 ? "border-t border-[var(--border)]" : ""}`}>
                     <div style={{ fontSize: 12, color: "var(--text3)", fontFamily: "var(--font-dm-mono), monospace", whiteSpace: "nowrap", minWidth: 60 }}>
                       {new Date(t.date + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
                     </div>
@@ -833,7 +810,7 @@ export default function Budget() {
             autoFocus
           />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
           <div>
             <label>Limite mensal (R$){catForm.bucket !== "livre" ? " *" : " (opcional)"}</label>
             <input
@@ -942,7 +919,7 @@ export default function Budget() {
         <div style={{ marginBottom: 12, fontSize: 12, color: "var(--text3)" }}>
           Move o saldo não utilizado de um balde para outro.
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 10, alignItems: "end", marginBottom: 16 }}>
+        <div className="grid grid-cols-[1fr_auto_1fr] sm:grid-cols-[1fr_auto_1fr] gap-2 md:gap-[10px] items-end mb-4">
           <div>
             <label>De</label>
             <select value={transferFrom} onChange={(e) => { setTransferFrom(e.target.value as Bucket); setTransferError(""); }}>
@@ -1035,7 +1012,7 @@ export default function Budget() {
         {newSalary && parseFloat(newSalary) > 0 && (
           <div style={{ marginBottom: 16, padding: "12px 14px", background: "var(--bg4)", borderRadius: 10, border: "1px solid var(--border)" }}>
             <div style={{ fontSize: 10, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>distribuição automática</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[
                 { label: "Custos Fixos 50%", color: "#60a5fa", pct: 0.5 },
                 { label: "Reserva 10%", color: "#4ade80", pct: 0.1 },

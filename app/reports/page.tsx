@@ -114,7 +114,7 @@ export default function Reports() {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div style={{ height: 28, width: 200 }} className="skeleton" />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[0, 1].map((i) => (
             <div key={i} style={{ height: 260, borderRadius: 16 }} className="skeleton" />
           ))}
@@ -135,7 +135,7 @@ export default function Reports() {
       />
 
       {/* Summary row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginBottom: 20 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-[14px] mb-5">
         <Card>
           <CardTitle>total 6 meses</CardTitle>
           <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "var(--font-dm-mono)" }}>
@@ -162,7 +162,7 @@ export default function Reports() {
       </div>
 
       {/* Charts */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-[14px] mb-5">
         <Card>
           <CardTitle style={{ marginBottom: 16 }}>gasto mensal total</CardTitle>
           <LineChartWidget
@@ -245,7 +245,8 @@ export default function Reports() {
       {/* Monthly summary table */}
       <Card>
         <CardTitle style={{ marginBottom: 16 }}>resumo mensal</CardTitle>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div className="overflow-x-auto w-full no-scrollbar pb-2">
+          <table className="w-full min-w-[500px] border-collapse">
           <thead>
             <tr>
               {["mês", "gasto total", "maior categoria", "vs salário"].map((h) => (
@@ -304,6 +305,7 @@ export default function Reports() {
             })}
           </tbody>
         </table>
+        </div>
       </Card>
     </div>
   );

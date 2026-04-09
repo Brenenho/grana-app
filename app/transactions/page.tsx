@@ -186,7 +186,7 @@ export default function Transactions() {
       />
 
       {/* Stats row */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 20 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-[14px] mb-5">
         <Card>
           <CardTitle>transações</CardTitle>
           <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "var(--font-dm-mono)" }}>{transactions.length}</div>
@@ -216,7 +216,8 @@ export default function Transactions() {
             <div style={{ fontSize: 12 }}>Clique em "Nova transação" para começar</div>
           </div>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <div className="overflow-x-auto w-full no-scrollbar pb-2">
+            <table className="w-full min-w-[600px] border-collapse">
             <thead>
               <tr>
                 {["data", "descrição", "categoria", "balde", "tipo", "valor", ""].map((h, i) => (
@@ -274,6 +275,7 @@ export default function Transactions() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </Card>
 
@@ -285,7 +287,7 @@ export default function Transactions() {
             onChange={(e) => f("description", e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAdd()} autoFocus />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, ...FG }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
           <div>
             <label>Valor (R$) *</label>
             <input type="number" placeholder="0,00" value={form.amount}
@@ -296,7 +298,7 @@ export default function Transactions() {
             <input type="date" value={form.date} onChange={(e) => f("date", e.target.value)} />
           </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, ...FG }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
           <div>
             <label>Tipo</label>
             <select value={form.type} onChange={(e) => f("type", e.target.value)}>
@@ -342,7 +344,7 @@ export default function Transactions() {
               <input value={editForm.description} autoFocus
                 onChange={(e) => { setEditForm(f => ({ ...f, description: e.target.value })); setEditError(""); }} />
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, ...FG }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
               <div>
                 <label>Valor (R$) *</label>
                 <input type="number" value={editForm.amount} min="0.01" step="0.01"
@@ -354,7 +356,7 @@ export default function Transactions() {
                   onChange={(e) => setEditForm(f => ({ ...f, date: e.target.value }))} />
               </div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, ...FG }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
               <div>
                 <label>Tipo</label>
                 <div style={{ padding: "8px 12px", background: "var(--bg3)", borderRadius: 8, fontSize: 13, color: "var(--text2)", border: "1px solid var(--border)" }}>

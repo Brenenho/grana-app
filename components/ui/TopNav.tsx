@@ -31,22 +31,8 @@ export default function TopNav() {
 
   return (
     <header
+      className="sticky top-3 z-[200] flex items-center bg-[#0a0a0c]/90 backdrop-blur-xl border border-white/10 rounded-xl px-3 md:px-[14px] mx-3 md:mx-5 mb-6 h-12 shadow-[0_4px_24px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.04)] slide-down"
       style={{
-        position: "sticky",
-        top: 12,
-        height: 48,
-        margin: "12px 20px 24px",
-        zIndex: 200,
-        display: "flex",
-        alignItems: "center",
-        background: "rgba(10,10,12,0.82)",
-        backdropFilter: "blur(24px)",
-        WebkitBackdropFilter: "blur(24px)",
-        border: "1px solid rgba(255,255,255,0.07)",
-        borderRadius: 14,
-        padding: "0 14px",
-        gap: 0,
-        boxShadow: "0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04)",
         animation: "slideDown 0.3s cubic-bezier(0.16,1,0.3,1) both",
       }}
     >
@@ -68,7 +54,7 @@ export default function TopNav() {
       <div style={{ width: 1, height: 20, background: "var(--border2)", marginRight: 14, flexShrink: 0 }} />
 
       {/* Nav links */}
-      <nav style={{ display: "flex", alignItems: "center", gap: 1, flex: 1, height: "100%" }}>
+      <nav className="flex items-center gap-[1px] flex-1 h-full overflow-x-auto min-w-0 pr-4 no-scrollbar">
         {NAV.map(({ href, label }) => {
           const active = path === href || (href !== "/dashboard" && path.startsWith(href));
           return (
@@ -128,12 +114,7 @@ export default function TopNav() {
         )}
 
         {profile && (
-          <div style={{
-            width: 26, height: 26, borderRadius: "50%",
-            background: "linear-gradient(135deg, #a78bfa, #60a5fa)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 11, fontWeight: 600, color: "#fff", flexShrink: 0,
-          }}>
+          <div className="w-[26px] h-[26px] rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-[11px] font-semibold text-white shrink-0 hidden md:flex">
             {firstName[0]?.toUpperCase() ?? "U"}
           </div>
         )}

@@ -250,7 +250,7 @@ export default function Goals() {
           <div style={{ fontSize: 12 }}>Crie sua primeira meta financeira</div>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 16, marginBottom: 24 }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           {goals.map((g) => {
             const pct = g.target_amount > 0 ? Math.min(100, Math.round((g.current_amount / g.target_amount) * 100)) : 0;
             const meses = g.monthly_contribution > 0
@@ -390,7 +390,7 @@ export default function Goals() {
             onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
           />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, ...FG }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
           <div>
             <label>Valor alvo (R$) *</label>
             <input
