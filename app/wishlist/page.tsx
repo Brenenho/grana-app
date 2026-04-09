@@ -100,31 +100,35 @@ export default function Wishlist() {
 
   async function confirmBought() {
     if (!buyItem) return;
+    const itemToBuy = buyItem; // Capture local ref
     setBuyLoading(true);
     setBuyError("");
     try {
       const supabase = createClient();
       const { data: { user }, error: authErr } = await supabase.auth.getUser();
-      if (authErr || !user) { setBuyError("Sessão expirada."); return; }
+      if (authErr || !user) { setBuyError("Sessão expirada."); setBuyLoading(false); return; }
 
       const { data: txData, error: txError } = await supabase.from("transactions").insert({
         user_id: user.id,
-        description: `Comprado: ${buyItem.name}`,
-        amount: -Math.abs(buyItem.price),
+        description: `Comprado: ${itemToBuy.name}`,
+        amount: -Math.abs(itemToBuy.price),
         category: "Lazer",
         bucket: "livre",
         type: "despesa",
         date: getLocalISOString()
       }).select().single();
 
-      if (txError) { setBuyError(`Erro ao registrar despesa: ${txError.message}`); return; }
+      if (txError) { setBuyError(`Erro ao registrar despesa: ${txError.message}`); setBuyLoading(false); return; }
 
-      const { error: wError } = await supabase.from("wishlist").update({ status: "comprado" }).eq("id", buyItem.id);
-      if (wError) { setBuyError(`Erro ao atualizar wishlist: ${wError.message}`); return; }
+      const { error: wError } = await supabase.from("wishlist").update({ status: "comprado" }).eq("id", itemToBuy.id);
+      if (wError) { setBuyError(`Erro ao atualizar wishlist: ${wError.message}`); setBuyLoading(false); return; }
 
-      addTransaction(txData);
-      deleteWishItem(buyItem.id);
+      // Success steps:
+      // 1. Close modal first to avoid "freezing" UI
       setBuyItem(null);
+      // 2. Update store
+      addTransaction(txData);
+      deleteWishItem(itemToBuy.id);
     } catch (err: unknown) {
       setBuyError(`Erro inesperado: ${err instanceof Error ? err.message : String(err)}`);
     } finally {

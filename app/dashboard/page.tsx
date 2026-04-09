@@ -146,11 +146,7 @@ export default function Dashboard() {
             <div style={{ fontSize: 11, color: "var(--text3)", marginBottom: 2, letterSpacing: "0.4px", textTransform: "uppercase" }}>
               saldo disponível
             </div>
-            <div style={{
-              fontSize: 36,
-              fontWeight: 700,
-              fontFamily: "var(--font-dm-mono), monospace",
-              letterSpacing: -1.5,
+            <div className="text-[28px] sm:text-[36px] font-bold font-mono tracking-tighter text-[var(--text)]" style={{
               color: saldo < 0 ? "var(--red)" : statusColor,
               animation: "numberReveal 0.5s cubic-bezier(0.16,1,0.3,1) both",
               lineHeight: 1,

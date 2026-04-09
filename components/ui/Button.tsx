@@ -54,6 +54,7 @@ export function Button({
   className,
   style,
   disabled,
+  type = "button",
   ...props
 }: BtnProps) {
   const v = VARIANTS[variant];
@@ -61,6 +62,7 @@ export function Button({
 
   return (
     <button
+      type={type}
       disabled={disabled}
       style={{
         display: "inline-flex",

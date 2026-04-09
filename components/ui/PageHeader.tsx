@@ -8,15 +8,7 @@ export function PageHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div style={{
-      display: "flex",
-      alignItems: "flex-start",
-      justifyContent: "space-between",
-      marginBottom: 24,
-      gap: 16,
-      paddingBottom: 20,
-      borderBottom: "1px solid var(--border)",
-    }}>
+    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6 pb-5 border-b border-[var(--border)]">
       <div>
         <h1 style={{
           fontSize: 20,

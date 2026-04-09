@@ -95,14 +95,14 @@ export default function TopNav() {
         <Link href="/ai" style={{
           display: "flex", alignItems: "center", gap: 5,
           fontSize: 12, color: path.startsWith("/ai") ? "var(--accent)" : "var(--text3)",
-          textDecoration: "none", padding: "4px 9px", borderRadius: 7,
+          textDecoration: "none", padding: "4px 8px", borderRadius: 7,
           background: path.startsWith("/ai") ? "var(--accent-dim)" : "transparent",
           transition: "all 0.15s",
         }}
           onMouseEnter={(e) => { if (!path.startsWith("/ai")) { e.currentTarget.style.color = "var(--text2)"; e.currentTarget.style.background = "rgba(255,255,255,0.04)"; } }}
           onMouseLeave={(e) => { if (!path.startsWith("/ai")) { e.currentTarget.style.color = "var(--text3)"; e.currentTarget.style.background = "transparent"; } }}
         >
-          <MessageCircle size={12} strokeWidth={2} /> <span>Consultor</span>
+          <MessageCircle size={14} strokeWidth={2} /> <span className="hidden xs:inline">Consultor</span>
         </Link>
 
         {/* Keeping divider visible on all sizes */}
@@ -110,10 +110,10 @@ export default function TopNav() {
 
         {profile && (
           <span style={{
-            fontSize: 12, fontWeight: 600,
+            fontSize: 11, fontWeight: 700,
             fontFamily: "var(--font-dm-mono), monospace",
             color: "var(--accent)",
-            padding: "3px 9px",
+            padding: "2px 8px",
             background: "var(--accent-dim)",
             borderRadius: 20,
             border: "1px solid rgba(74,222,128,0.15)",

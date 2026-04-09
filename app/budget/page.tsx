@@ -394,7 +394,7 @@ export default function Budget() {
   return (
     <div className="fade-up">
       {/* Page header */}
-      <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+      <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 16 }}>
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 600, letterSpacing: -0.4, color: "var(--text)", marginBottom: 3 }}>
             Orçamento
@@ -403,15 +403,15 @@ export default function Budget() {
             Distribua o salário antes de gastar, categoria a categoria
           </p>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <Button variant="danger" onClick={() => setResetOpen(true)}>
-            <RefreshCw size={13} strokeWidth={2} /> Resetar Dados
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Button variant="danger" size="sm" onClick={() => setResetOpen(true)}>
+            <RefreshCw size={13} strokeWidth={2} /> <span className="hidden sm:inline">Resetar Dados</span>
           </Button>
-          <Button onClick={() => { setTransferOpen(true); setTransferAmount(""); setTransferError(""); }}>
-            <ArrowRightLeft size={13} strokeWidth={2} /> Transferir sobra
+          <Button size="sm" onClick={() => { setTransferOpen(true); setTransferAmount(""); setTransferError(""); }}>
+            <ArrowRightLeft size={13} strokeWidth={2} /> <span className="hidden sm:inline">Transferir sobra</span><span className="inline sm:hidden">Transferir</span>
           </Button>
-          <Button onClick={openSalaryModal}>
-            <Pencil size={13} strokeWidth={2} /> Editar salário
+          <Button size="sm" onClick={openSalaryModal}>
+            <Pencil size={13} strokeWidth={2} /> <span className="hidden sm:inline">Editar salário</span><span className="inline sm:hidden">Salário</span>
           </Button>
         </div>
       </div>
